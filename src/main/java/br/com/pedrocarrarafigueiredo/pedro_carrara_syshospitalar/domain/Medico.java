@@ -14,6 +14,13 @@ public class Medico extends Prestador {
         setEspecialidade(especialidade);
     }
 
+    public Medico(Long id, String nome, int idade, String cpf, String email, Boolean ativo, String crm,
+        String especialidade) {
+        super(id, nome, idade, cpf, email, ativo);
+        setCrm(crm);
+        setEspecialidade(especialidade);
+    }
+
     public String getCrm() {
         return crm;
     }
@@ -50,7 +57,8 @@ public class Medico extends Prestador {
     @Override
     public String toString() {
         return "Medico{" +
-                "nome='" + getNome() + '\'' +
+                "id=" + getId() +
+                ", nome='" + getNome() + '\'' +
                 ", idade=" + getIdade() +
                 ", cpf='" + getCpf() + '\'' +
                 ", email='" + getEmail() + '\'' +

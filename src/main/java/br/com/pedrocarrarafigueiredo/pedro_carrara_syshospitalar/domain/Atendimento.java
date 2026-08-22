@@ -5,9 +5,9 @@ import br.com.pedrocarrarafigueiredo.pedro_carrara_syshospitalar.enuns.TipoAtend
 import java.time.LocalDateTime;
 import java.util.Objects;
 
-public class Atendimento implements Comparable<Atendimento> {
+public class Atendimento implements Identificavel, Comparable<Atendimento> {
 
-    private Long codigoAtendimento;
+    private Long id;
     private LocalDateTime dataHoraAtendimento;
     private TipoAtendimento tipoAtendimento;
     private StatusAtendimento statusAtendimento;
@@ -17,7 +17,7 @@ public class Atendimento implements Comparable<Atendimento> {
     public Atendimento(Long codigoAtendimento, LocalDateTime dataHoraAtendimento,
         TipoAtendimento tipoAtendimento, StatusAtendimento statusAtendimento,
         Paciente paciente, Medico medico) {
-        setCodigoAtendimento(codigoAtendimento);
+        setId(codigoAtendimento);
         setDataHoraAtendimento(dataHoraAtendimento);
         setTipoAtendimento(tipoAtendimento);
         setStatusAtendimento(statusAtendimento);
@@ -25,16 +25,26 @@ public class Atendimento implements Comparable<Atendimento> {
         setMedico(medico);
     }
 
+    @Override
+    public Long getId() {
+        return id;
+    }
+
+    @Override
+    public void setId(Long id) {
+        if (id == null || id <= 0) {
+            throw new IllegalArgumentException("Id do atendimento deve ser positivo.");
+        }
+
+        this.id = id;
+    }
+
     public Long getCodigoAtendimento() {
-        return codigoAtendimento;
+        return id;
     }
 
     public void setCodigoAtendimento(Long codigoAtendimento) {
-        if (codigoAtendimento == null || codigoAtendimento <= 0) {
-            throw new IllegalArgumentException("Codigo do atendimento deve ser positivo.");
-        }
-
-        this.codigoAtendimento = codigoAtendimento;
+        setId(codigoAtendimento);
     }
 
     public LocalDateTime getDataHoraAtendimento() {
@@ -132,7 +142,7 @@ public class Atendimento implements Comparable<Atendimento> {
     @Override
     public String toString() {
         return "Atendimento{" +
-                "codigoAtendimento=" + codigoAtendimento +
+                "id=" + id +
                 ", dataHoraAtendimento=" + dataHoraAtendimento +
                 ", tipoAtendimento=" + tipoAtendimento +
                 ", statusAtendimento=" + statusAtendimento +
@@ -143,7 +153,7 @@ public class Atendimento implements Comparable<Atendimento> {
 
     @Override
     public int compareTo(Atendimento outroAtendimento) {
-        return this.codigoAtendimento.compareTo(outroAtendimento.codigoAtendimento);
+        return this.id.compareTo(outroAtendimento.id);
     }
 
     @Override
@@ -154,11 +164,11 @@ public class Atendimento implements Comparable<Atendimento> {
         if (!(objeto instanceof Atendimento atendimento)) {
             return false;
         }
-        return Objects.equals(codigoAtendimento, atendimento.codigoAtendimento);
+        return Objects.equals(id, atendimento.id);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(codigoAtendimento);
+        return Objects.hash(id);
     }
 }

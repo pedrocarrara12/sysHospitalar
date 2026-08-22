@@ -6,8 +6,9 @@ import java.util.Collections;
 import java.util.Set;
 import java.util.TreeSet;
 
-public class Paciente {
+public class Paciente implements Identificavel {
 
+    private Long id;
     private String nome;
     private String cpf;
     private LocalDate dataNascimento;
@@ -24,6 +25,14 @@ public class Paciente {
 
     public Paciente(String nome, String cpf,
         LocalDate dataNascimento, char sexo, String telefone, String email, Boolean ativo) {
+        this(null, nome, cpf, dataNascimento, sexo, telefone, email, ativo);
+    }
+
+    public Paciente(Long id, String nome, String cpf,
+        LocalDate dataNascimento, char sexo, String telefone, String email, Boolean ativo) {
+        if (id != null) {
+            setId(id);
+        }
         setNome(nome);
         setCpf(cpf);
         setDataNascimento(dataNascimento);
@@ -31,6 +40,20 @@ public class Paciente {
         setTelefone(telefone);
         setEmail(email);
         this.ativo = ativo == null ? true : ativo;
+    }
+
+    @Override
+    public Long getId() {
+        return id;
+    }
+
+    @Override
+    public void setId(Long id) {
+        if (id == null || id <= 0) {
+            throw new IllegalArgumentException("Id do paciente deve ser positivo.");
+        }
+
+        this.id = id;
     }
 
     public String getNome() {
@@ -145,7 +168,8 @@ public class Paciente {
     @Override
     public String toString() {
         return "Paciente{" +
-                "nome='" + nome + '\'' +
+                "id=" + id +
+                ", nome='" + nome + '\'' +
                 ", cpf='" + cpf + '\'' +
                 ", dataNascimento=" + dataNascimento +
                 ", idade=" + calcularIdade() +

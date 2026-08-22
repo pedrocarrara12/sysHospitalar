@@ -1,7 +1,8 @@
 package br.com.pedrocarrarafigueiredo.pedro_carrara_syshospitalar.domain;
 
-public abstract class Prestador {
+public abstract class Prestador implements Identificavel {
 
+    private Long id;
     private String nome;
     private int idade;
     private String cpf;
@@ -13,11 +14,32 @@ public abstract class Prestador {
     }
 
     public Prestador(String nome, int idade, String cpf, String email, Boolean ativo) {
+        this(null, nome, idade, cpf, email, ativo);
+    }
+
+    public Prestador(Long id, String nome, int idade, String cpf, String email, Boolean ativo) {
+        if (id != null) {
+            setId(id);
+        }
         setNome(nome);
         setIdade(idade);
         setCpf(cpf);
         setEmail(email);
         this.ativo = ativo == null ? true : ativo;
+    }
+
+    @Override
+    public Long getId() {
+        return id;
+    }
+
+    @Override
+    public void setId(Long id) {
+        if (id == null || id <= 0) {
+            throw new IllegalArgumentException("Id do prestador deve ser positivo.");
+        }
+
+        this.id = id;
     }
 
     public String getNome() {
@@ -93,7 +115,8 @@ public abstract class Prestador {
     @Override
     public String toString() {
         return "Prestador{" +
-                "nome='" + nome + '\'' +
+                "id=" + id +
+                ", nome='" + nome + '\'' +
                 ", idade=" + idade +
                 ", cpf='" + cpf + '\'' +
                 ", email='" + email + '\'' +

@@ -13,8 +13,21 @@ public class Enfermeiro extends Prestador {
         setSetor(setor);
     }
 
+    public Enfermeiro(Long id, String coren, String setor) {
+        setId(id);
+        setCoren(coren);
+        setSetor(setor);
+    }
+
     public Enfermeiro(String nome, int idade, String cpf, String email, Boolean ativo, String coren, String setor) {
         super(nome, idade, cpf, email, ativo);
+        setCoren(coren);
+        setSetor(setor);
+    }
+
+    public Enfermeiro(Long id, String nome, int idade, String cpf, String email, Boolean ativo, String coren,
+        String setor) {
+        super(id, nome, idade, cpf, email, ativo);
         setCoren(coren);
         setSetor(setor);
     }
@@ -55,7 +68,8 @@ public class Enfermeiro extends Prestador {
     @Override
     public String toString() {
         return "Enfermeiro{" +
-                "nome='" + getNome() + '\'' +
+                "id=" + getId() +
+                ", nome='" + getNome() + '\'' +
                 ", idade=" + getIdade() +
                 ", cpf='" + getCpf() + '\'' +
                 ", email='" + getEmail() + '\'' +

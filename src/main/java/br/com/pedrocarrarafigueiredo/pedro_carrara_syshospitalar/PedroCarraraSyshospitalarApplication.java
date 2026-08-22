@@ -6,6 +6,10 @@ import br.com.pedrocarrarafigueiredo.pedro_carrara_syshospitalar.domain.Medico;
 import br.com.pedrocarrarafigueiredo.pedro_carrara_syshospitalar.domain.Paciente;
 import br.com.pedrocarrarafigueiredo.pedro_carrara_syshospitalar.enuns.StatusAtendimento;
 import br.com.pedrocarrarafigueiredo.pedro_carrara_syshospitalar.enuns.TipoAtendimento;
+import br.com.pedrocarrarafigueiredo.pedro_carrara_syshospitalar.service.AtendimentoService;
+import br.com.pedrocarrarafigueiredo.pedro_carrara_syshospitalar.service.EnfermeiroService;
+import br.com.pedrocarrarafigueiredo.pedro_carrara_syshospitalar.service.MedicoService;
+import br.com.pedrocarrarafigueiredo.pedro_carrara_syshospitalar.service.PacienteService;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import org.springframework.boot.CommandLineRunner;
@@ -21,6 +25,11 @@ public class PedroCarraraSyshospitalarApplication implements CommandLineRunner {
 
     @Override
     public void run(String... args) {
+        MedicoService medicoService = new MedicoService();
+        EnfermeiroService enfermeiroService = new EnfermeiroService();
+        PacienteService pacienteService = new PacienteService();
+        AtendimentoService atendimentoService = new AtendimentoService();
+
         Medico medico = new Medico(
                 "Ana Martins",
                 42,
@@ -73,16 +82,34 @@ public class PedroCarraraSyshospitalarApplication implements CommandLineRunner {
         paciente.adicionarAtendimento(segundoAtendimento);
         segundoAtendimento.concluir();
 
-        System.out.println("=== Etapa 1: Modelo orientado a objetos ===");
-        System.out.println(medico);
-        System.out.println(enfermeiro);
-        System.out.println(paciente);
+        medicoService.cadastrar(medico);
+        enfermeiroService.cadastrar(enfermeiro);
+        pacienteService.cadastrar(paciente);
+        atendimentoService.cadastrar(primeiroAtendimento);
+        atendimentoService.cadastrar(segundoAtendimento);
+
+        Paciente pacienteAtualizado = new Paciente(
+                "Joao Pereira",
+                "11122233344",
+                LocalDate.of(1988, 3, 22),
+                'M',
+                "65999991111",
+                "joao.pereira@email.com",
+                true
+        );
+        pacienteService.atualizar(paciente.getId(), pacienteAtualizado);
+        enfermeiroService.remover(enfermeiro.getId());
+
+        System.out.println("=== Etapa 2: Estruturas de Dados e Camada de Servico ===");
+        System.out.println("Medico cadastrado: " + medicoService.buscarPorId(medico.getId()));
+        System.out.println("Paciente atualizado: " + pacienteService.buscarPorId(pacienteAtualizado.getId()));
+        System.out.println("Total de medicos cadastrados: " + medicoService.buscarTodos().size());
+        System.out.println("Total de enfermeiros cadastrados apos remocao: " + enfermeiroService.buscarTodos().size());
         System.out.println("Quantidade de atendimentos do paciente: " + paciente.quantidadeAtendimentos());
         System.out.println("Paciente possui atendimento em andamento? " + paciente.possuiAtendimentoEmAndamento());
         System.out.println("Medico atende cardiologia? " + medico.atendeEspecialidade("Cardiologia"));
-        System.out.println("Enfermeiro trabalha no pronto atendimento? " + enfermeiro.trabalhaNoSetor("Pronto Atendimento"));
-        System.out.println("Atendimentos:");
+        System.out.println("Atendimentos cadastrados:");
 
-        paciente.getAtendimentos().forEach(atendimento -> System.out.println(atendimento));
+        atendimentoService.buscarTodos().values().forEach(atendimento -> System.out.println(atendimento));
     }
 }
