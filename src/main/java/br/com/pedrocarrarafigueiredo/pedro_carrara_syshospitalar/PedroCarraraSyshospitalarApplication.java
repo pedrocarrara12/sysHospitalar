@@ -105,11 +105,16 @@ public class PedroCarraraSyshospitalarApplication implements CommandLineRunner {
         System.out.println("Paciente atualizado: " + pacienteService.buscarPorId(pacienteAtualizado.getId()));
         System.out.println("Total de medicos cadastrados: " + medicoService.buscarTodos().size());
         System.out.println("Total de enfermeiros cadastrados apos remocao: " + enfermeiroService.buscarTodos().size());
+        System.out.println("Pacientes do sexo masculino: " + pacienteService.filtrarPorSexo('M').size());
+        System.out.println("Medicos ativos: " + medicoService.listarAtivos().size());
+        System.out.println("Medicos de cardiologia: " + medicoService.filtrarPorEspecialidade("Cardiologia").size());
+        System.out.println("Atendimentos em andamento: " + atendimentoService.filtrarPorStatus(StatusAtendimento.ANDAMENTO).size());
+        System.out.println("Atendimentos ambulatoriais: " + atendimentoService.filtrarPorTipo(TipoAtendimento.AMBULATORIAL).size());
         System.out.println("Quantidade de atendimentos do paciente: " + paciente.quantidadeAtendimentos());
         System.out.println("Paciente possui atendimento em andamento? " + paciente.possuiAtendimentoEmAndamento());
         System.out.println("Medico atende cardiologia? " + medico.atendeEspecialidade("Cardiologia"));
         System.out.println("Atendimentos cadastrados:");
 
-        atendimentoService.buscarTodos().values().forEach(atendimento -> System.out.println(atendimento));
+        atendimentoService.listarOrdenadoPorDataHora().forEach(atendimento -> System.out.println(atendimento));
     }
 }

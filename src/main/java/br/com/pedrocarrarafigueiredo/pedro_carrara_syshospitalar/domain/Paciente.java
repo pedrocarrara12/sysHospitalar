@@ -6,7 +6,7 @@ import java.util.Collections;
 import java.util.Set;
 import java.util.TreeSet;
 
-public class Paciente implements Identificavel {
+public class Paciente implements Identificavel, Comparable<Paciente> {
 
     private Long id;
     private String nome;
@@ -179,5 +179,10 @@ public class Paciente implements Identificavel {
                 ", ativo=" + ativo +
                 ", quantidadeAtendimentos=" + atendimentos.size() +
                 '}';
+    }
+
+    @Override
+    public int compareTo(Paciente outro) {
+        return this.nome.compareToIgnoreCase(outro.nome);
     }
 }
