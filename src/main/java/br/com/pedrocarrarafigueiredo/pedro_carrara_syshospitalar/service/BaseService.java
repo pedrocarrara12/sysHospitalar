@@ -4,7 +4,9 @@ import br.com.pedrocarrarafigueiredo.pedro_carrara_syshospitalar.domain.Identifi
 import br.com.pedrocarrarafigueiredo.pedro_carrara_syshospitalar.exception.ContemObjetoException;
 import br.com.pedrocarrarafigueiredo.pedro_carrara_syshospitalar.exception.ObjetoNaoEncontradoException;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 public abstract class BaseService<T extends Identificavel> {
@@ -55,7 +57,7 @@ public abstract class BaseService<T extends Identificavel> {
         return map.get(id);
     }
 
-    public Map<Long, T> buscarTodos() {
-        return new HashMap<>(this.map);
+    public List<T> buscarTodos() {
+        return new ArrayList<>(map.values());
     }
 }

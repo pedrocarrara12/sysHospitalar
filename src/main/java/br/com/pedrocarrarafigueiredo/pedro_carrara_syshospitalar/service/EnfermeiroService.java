@@ -1,9 +1,11 @@
 package br.com.pedrocarrarafigueiredo.pedro_carrara_syshospitalar.service;
 
 import br.com.pedrocarrarafigueiredo.pedro_carrara_syshospitalar.domain.Enfermeiro;
+import org.springframework.stereotype.Service;
 
 import java.util.List;
 
+@Service
 public class EnfermeiroService extends BaseService<Enfermeiro> {
 
     public List<Enfermeiro> filtrarPorSetor(String setor) {
@@ -12,7 +14,6 @@ public class EnfermeiroService extends BaseService<Enfermeiro> {
         }
 
         return buscarTodos()
-                .values()
                 .stream()
                 .filter(enfermeiro -> enfermeiro.trabalhaNoSetor(setor))
                 .toList();
@@ -20,7 +21,6 @@ public class EnfermeiroService extends BaseService<Enfermeiro> {
 
     public List<Enfermeiro> listarAtivos() {
         return buscarTodos()
-                .values()
                 .stream()
                 .filter(Enfermeiro::isAtivo)
                 .toList();

@@ -1,9 +1,11 @@
 package br.com.pedrocarrarafigueiredo.pedro_carrara_syshospitalar.service;
 
 import br.com.pedrocarrarafigueiredo.pedro_carrara_syshospitalar.domain.Paciente;
+import org.springframework.stereotype.Service;
 
 import java.util.List;
 
+@Service
 public class PacienteService extends BaseService<Paciente> {
     public List<Paciente> filtrarPorSexo(char sexo) {
 
@@ -14,7 +16,6 @@ public class PacienteService extends BaseService<Paciente> {
         char sexoNormalizado = Character.toUpperCase(sexo);
 
         return buscarTodos()
-                .values()
                 .stream()
                 .filter(paciente -> Character.toUpperCase(paciente.getSexo()) == sexoNormalizado)
                 .toList();
@@ -22,7 +23,6 @@ public class PacienteService extends BaseService<Paciente> {
 
     public List<Paciente> listarOrdenadoPorNome() {
         return buscarTodos()
-                .values()
                 .stream()
                 .sorted()
                 .toList();

@@ -1,9 +1,11 @@
 package br.com.pedrocarrarafigueiredo.pedro_carrara_syshospitalar.service;
 
 import br.com.pedrocarrarafigueiredo.pedro_carrara_syshospitalar.domain.Medico;
+import org.springframework.stereotype.Service;
 
 import java.util.List;
 
+@Service
 public class MedicoService extends BaseService<Medico> {
 
     public List<Medico> filtrarPorEspecialidade(String especialidade) {
@@ -12,7 +14,6 @@ public class MedicoService extends BaseService<Medico> {
         }
 
         return buscarTodos()
-                .values()
                 .stream()
                 .filter(medico -> medico.atendeEspecialidade(especialidade))
                 .toList();
@@ -20,7 +21,6 @@ public class MedicoService extends BaseService<Medico> {
 
     public List<Medico> listarAtivos() {
         return buscarTodos()
-                .values()
                 .stream()
                 .filter(Medico::isAtivo)
                 .toList();
