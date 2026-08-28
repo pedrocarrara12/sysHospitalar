@@ -2,11 +2,9 @@ package br.com.pedrocarrarafigueiredo.pedro_carrara_syshospitalar.controller;
 
 import br.com.pedrocarrarafigueiredo.pedro_carrara_syshospitalar.domain.Enfermeiro;
 import br.com.pedrocarrarafigueiredo.pedro_carrara_syshospitalar.service.EnfermeiroService;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
@@ -18,15 +16,30 @@ public class EnfermeiroController {
     public EnfermeiroController(EnfermeiroService enfermeiroService) {
         this.enfermeiroService = enfermeiroService;
     }
+
     @GetMapping
-    public ResponseEntity<List<Enfermeiro>> buscarTodosEnfermeiros() {
-        List<Enfermeiro> enfermeiroList = enfermeiroService.buscarTodos();
-        return ResponseEntity.ok(enfermeiroList);
-    }
-    @GetMapping("/{id}")
-    public ResponseEntity<Enfermeiro> buscarEnfermeiroPorId(@PathVariable Long id) {
-        Enfermeiro enfermeiro = enfermeiroService.buscarPorId(id);
-        return ResponseEntity.ok(enfermeiro);
+    public ResponseEntity<List<Enfermeiro>> buscarTodos() {
+        return ResponseEntity.ok(enfermeiroService.buscarTodos());
     }
 
+    @GetMapping("/{id}")
+    public ResponseEntity<Enfermeiro> buscarPorId(@PathVariable Long id) {
+        return ResponseEntity.ok(enfermeiroService.buscarPorId(id));
+    }
+
+    @PostMapping
+    public ResponseEntity<Enfermeiro> inserir(@RequestBody Enfermeiro enfermeiro) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(enfermeiroService.cadastrar(enfermeiro));
+    }
+
+    @PutMapping("/{id}")
+    public ResponseEntity<Enfermeiro> atualizar(@PathVariable Long id, @RequestBody Enfermeiro enfermeiro) {
+        return ResponseEntity.ok(enfermeiroService.atualizar(id, enfermeiro));
+    }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> remover(@PathVariable Long id) {
+        enfermeiroService.remover(id);
+        return ResponseEntity.noContent().build();
+    }
 }

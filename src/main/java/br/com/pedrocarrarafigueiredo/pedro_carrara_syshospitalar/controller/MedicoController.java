@@ -16,26 +16,30 @@ public class MedicoController {
     public MedicoController(MedicoService medicoService) {
         this.medicoService = medicoService;
     }
+
     @GetMapping
-    public ResponseEntity<List<Medico>> buscarTodosMedicos() {
-        List<Medico> medicoList = medicoService.buscarTodos();
-        return ResponseEntity.ok(medicoList);
+    public ResponseEntity<List<Medico>> buscarTodos() {
+        return ResponseEntity.ok(medicoService.buscarTodos());
     }
+
     @GetMapping("/{id}")
     public ResponseEntity<Medico> buscarPorId(@PathVariable Long id) {
-        Medico medico = medicoService.buscarPorId(id);
-        return ResponseEntity.ok(medico);
+        return ResponseEntity.ok(medicoService.buscarPorId(id));
     }
+
     @PostMapping
-    public ResponseEntity<Medico> criarMedico(@RequestBody Medico medico) {
-        Medico medicoCadastro = medicoService.cadastrar(medico);
-
-        return ResponseEntity.status(HttpStatus.CREATED).body(medicoCadastro);
+    public ResponseEntity<Medico> inserir(@RequestBody Medico medico) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(medicoService.cadastrar(medico));
     }
+
     @PutMapping("/{id}")
-    public ResponseEntity<Medico> atualizarMedico(@PathVariable Long id, Medico medico) {
-        Medico medicoAtualizado = medicoService.atualizar(id,medico);
-        return ResponseEntity.ok(medicoAtualizado);
+    public ResponseEntity<Medico> atualizar(@PathVariable Long id, @RequestBody Medico medico) {
+        return ResponseEntity.ok(medicoService.atualizar(id, medico));
     }
 
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> remover(@PathVariable Long id) {
+        medicoService.remover(id);
+        return ResponseEntity.noContent().build();
+    }
 }

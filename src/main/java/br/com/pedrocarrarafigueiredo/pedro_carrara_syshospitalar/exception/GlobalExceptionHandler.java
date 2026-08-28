@@ -39,4 +39,18 @@ public class GlobalExceptionHandler {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponse);
 
     }
+
+    @ExceptionHandler(ContemObjetoException.class)
+    public ResponseEntity<ErrorResponse> handleContemObjetoException(ContemObjetoException ex, HttpServletRequest
+            request) {
+            ErrorResponse errorResponse = new ErrorResponse(
+                    LocalDateTime.now(),
+                    HttpStatus.CONFLICT.value(),
+                    HttpStatus.CONFLICT.getReasonPhrase(),
+                    ex.getMessage(),
+                    request.getRequestURI()
+            );
+            return ResponseEntity.status(HttpStatus.CONFLICT).body(errorResponse);
+
+    }
 }
