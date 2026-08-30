@@ -1,7 +1,15 @@
 package br.com.pedrocarrarafigueiredo.pedro_carrara_syshospitalar.domain;
 
-public abstract class Prestador implements Identificavel {
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.MappedSuperclass;
 
+@MappedSuperclass
+public abstract class Prestador {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
     private String nome;
     private int idade;
@@ -19,7 +27,7 @@ public abstract class Prestador implements Identificavel {
 
     public Prestador(Long id, String nome, int idade, String cpf, String email, Boolean ativo) {
         if (id != null) {
-            setId(id);
+            atribuirId(id);
         }
         setNome(nome);
         setIdade(idade);
@@ -28,18 +36,25 @@ public abstract class Prestador implements Identificavel {
         this.ativo = ativo == null ? true : ativo;
     }
 
-    @Override
     public Long getId() {
         return id;
     }
 
-    @Override
     public void setId(Long id) {
+        if (id != null) {
+            validarId(id);
+        }
+        this.id = id;
+    }
+
+    private void validarId(Long id) {
         if (id == null || id <= 0) {
             throw new IllegalArgumentException("Id do prestador deve ser positivo.");
         }
+    }
 
-        this.id = id;
+    protected void atribuirId(Long id) {
+        setId(id);
     }
 
     public String getNome() {

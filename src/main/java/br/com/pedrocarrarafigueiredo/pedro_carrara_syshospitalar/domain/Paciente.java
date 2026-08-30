@@ -1,13 +1,25 @@
 package br.com.pedrocarrarafigueiredo.pedro_carrara_syshospitalar.domain;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.OneToMany;
+import jakarta.persistence.Table;
+
 import java.time.LocalDate;
 import java.time.Period;
 import java.util.Collections;
 import java.util.Set;
 import java.util.TreeSet;
 
-public class Paciente implements Identificavel, Comparable<Paciente> {
+@Entity
+@Table(name = "paciente")
+public class Paciente implements Comparable<Paciente> {
 
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
     private String nome;
     private String cpf;
@@ -17,7 +29,10 @@ public class Paciente implements Identificavel, Comparable<Paciente> {
     private String email;
     private boolean ativo;
 
-    private final Set<Atendimento> atendimentos = new TreeSet<>();
+
+    @JsonIgnore
+    @OneToMany(mappedBy = "paciente")
+    private Set<Atendimento> atendimentos = new TreeSet<>();
 
     public Paciente() {
         this.ativo = true;
@@ -31,7 +46,8 @@ public class Paciente implements Identificavel, Comparable<Paciente> {
     public Paciente(Long id, String nome, String cpf,
         LocalDate dataNascimento, char sexo, String telefone, String email, Boolean ativo) {
         if (id != null) {
-            setId(id);
+            validarId(id);
+            this.id = id;
         }
         setNome(nome);
         setCpf(cpf);
@@ -42,18 +58,21 @@ public class Paciente implements Identificavel, Comparable<Paciente> {
         this.ativo = ativo == null ? true : ativo;
     }
 
-    @Override
     public Long getId() {
         return id;
     }
 
-    @Override
     public void setId(Long id) {
+        if (id != null) {
+            validarId(id);
+        }
+        this.id = id;
+    }
+
+    private void validarId(Long id) {
         if (id == null || id <= 0) {
             throw new IllegalArgumentException("Id do paciente deve ser positivo.");
         }
-
-        this.id = id;
     }
 
     public String getNome() {

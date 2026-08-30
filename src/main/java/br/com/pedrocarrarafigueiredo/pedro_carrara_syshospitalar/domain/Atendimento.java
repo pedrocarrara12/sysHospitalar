@@ -2,22 +2,41 @@ package br.com.pedrocarrarafigueiredo.pedro_carrara_syshospitalar.domain;
 
 import br.com.pedrocarrarafigueiredo.pedro_carrara_syshospitalar.enuns.StatusAtendimento;
 import br.com.pedrocarrarafigueiredo.pedro_carrara_syshospitalar.enuns.TipoAtendimento;
+import jakarta.persistence.*;
+import org.springframework.format.annotation.DateTimeFormat;
+
 import java.time.LocalDateTime;
 import java.util.Objects;
-
-public class Atendimento implements Identificavel, Comparable<Atendimento> {
-
+@Entity
+@Table(name = "atendimento")
+public class Atendimento implements Comparable<Atendimento> {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
+
+    @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME)
     private LocalDateTime dataHoraAtendimento;
+
+    @Enumerated(EnumType.STRING)
     private TipoAtendimento tipoAtendimento;
+
+    @Enumerated(EnumType.STRING)
     private StatusAtendimento statusAtendimento;
+    @ManyToOne
+    @JoinColumn(name = "paciente_id")
     private Paciente paciente;
+    @ManyToOne
+    @JoinColumn(name = "medico_id")
     private Medico medico;
+
+    public Atendimento() {
+    }
 
     public Atendimento(Long codigoAtendimento, LocalDateTime dataHoraAtendimento,
         TipoAtendimento tipoAtendimento, StatusAtendimento statusAtendimento,
         Paciente paciente, Medico medico) {
-        setId(codigoAtendimento);
+        validarId(codigoAtendimento);
+        this.id = codigoAtendimento;
         setDataHoraAtendimento(dataHoraAtendimento);
         setTipoAtendimento(tipoAtendimento);
         setStatusAtendimento(statusAtendimento);
@@ -25,26 +44,23 @@ public class Atendimento implements Identificavel, Comparable<Atendimento> {
         setMedico(medico);
     }
 
-    @Override
+
     public Long getId() {
         return id;
     }
 
-    @Override
-    public void setId(Long id) {
-        if (id == null || id <= 0) {
-            throw new IllegalArgumentException("Id do atendimento deve ser positivo.");
-        }
 
+    public void setId(Long id) {
+        if (id != null) {
+            validarId(id);
+        }
         this.id = id;
     }
 
-    public Long getCodigoAtendimento() {
-        return id;
-    }
-
-    public void setCodigoAtendimento(Long codigoAtendimento) {
-        setId(codigoAtendimento);
+    private void validarId(Long id) {
+        if (id == null || id <= 0) {
+            throw new IllegalArgumentException("Id do atendimento deve ser positivo.");
+        }
     }
 
     public LocalDateTime getDataHoraAtendimento() {

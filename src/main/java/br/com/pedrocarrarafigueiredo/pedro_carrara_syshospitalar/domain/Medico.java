@@ -1,5 +1,16 @@
 package br.com.pedrocarrarafigueiredo.pedro_carrara_syshospitalar.domain;
 
+import jakarta.persistence.AttributeOverride;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.Table;
+
+@Entity
+@Table(name = "medico")
+@AttributeOverride(
+        name = "id",
+        column = @Column(name = "medico_id")
+)
 public class Medico extends Prestador {
 
     private String crm;

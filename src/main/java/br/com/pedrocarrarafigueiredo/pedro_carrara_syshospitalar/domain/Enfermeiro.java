@@ -1,5 +1,16 @@
 package br.com.pedrocarrarafigueiredo.pedro_carrara_syshospitalar.domain;
 
+import jakarta.persistence.AttributeOverride;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.Table;
+
+@Entity
+@Table(name = "enfermeiro")
+@AttributeOverride(
+        name = "id",
+        column = @Column(name = "enfermeiro_id")
+)
 public class Enfermeiro extends Prestador {
 
     private String coren;
@@ -14,7 +25,7 @@ public class Enfermeiro extends Prestador {
     }
 
     public Enfermeiro(Long id, String coren, String setor) {
-        setId(id);
+        atribuirId(id);
         setCoren(coren);
         setSetor(setor);
     }
