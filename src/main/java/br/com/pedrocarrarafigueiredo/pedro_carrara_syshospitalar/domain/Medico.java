@@ -25,13 +25,6 @@ public class Medico extends Prestador {
         setEspecialidade(especialidade);
     }
 
-    public Medico(Long id, String nome, int idade, String cpf, String email, Boolean ativo, String crm,
-        String especialidade) {
-        super(id, nome, idade, cpf, email, ativo);
-        setCrm(crm);
-        setEspecialidade(especialidade);
-    }
-
     public String getCrm() {
         return crm;
     }

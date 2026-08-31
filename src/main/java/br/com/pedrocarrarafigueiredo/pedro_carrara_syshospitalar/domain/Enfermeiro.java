@@ -24,21 +24,8 @@ public class Enfermeiro extends Prestador {
         setSetor(setor);
     }
 
-    public Enfermeiro(Long id, String coren, String setor) {
-        atribuirId(id);
-        setCoren(coren);
-        setSetor(setor);
-    }
-
     public Enfermeiro(String nome, int idade, String cpf, String email, Boolean ativo, String coren, String setor) {
         super(nome, idade, cpf, email, ativo);
-        setCoren(coren);
-        setSetor(setor);
-    }
-
-    public Enfermeiro(Long id, String nome, int idade, String cpf, String email, Boolean ativo, String coren,
-        String setor) {
-        super(id, nome, idade, cpf, email, ativo);
         setCoren(coren);
         setSetor(setor);
     }

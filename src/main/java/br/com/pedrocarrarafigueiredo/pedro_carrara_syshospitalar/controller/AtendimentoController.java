@@ -1,6 +1,10 @@
 package br.com.pedrocarrarafigueiredo.pedro_carrara_syshospitalar.controller;
 
-import br.com.pedrocarrarafigueiredo.pedro_carrara_syshospitalar.domain.Atendimento;
+import br.com.pedrocarrarafigueiredo.pedro_carrara_syshospitalar.dto.mapper.HospitalMapper;
+import br.com.pedrocarrarafigueiredo.pedro_carrara_syshospitalar.dto.request.AtendimentoRequest;
+import br.com.pedrocarrarafigueiredo.pedro_carrara_syshospitalar.dto.response.AtendimentoResponse;
+import br.com.pedrocarrarafigueiredo.pedro_carrara_syshospitalar.enuns.StatusAtendimento;
+import br.com.pedrocarrarafigueiredo.pedro_carrara_syshospitalar.enuns.TipoAtendimento;
 import br.com.pedrocarrarafigueiredo.pedro_carrara_syshospitalar.service.AtendimentoService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -16,6 +20,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
@@ -33,8 +38,47 @@ public class AtendimentoController {
     @GetMapping
     @Operation(summary = "Lista todos os atendimentos")
     @ApiResponse(responseCode = "200", description = "Atendimentos listados com sucesso")
-    public ResponseEntity<List<Atendimento>> buscarTodos() {
-        return ResponseEntity.ok(atendimentoService.buscarTodos());
+    public ResponseEntity<List<AtendimentoResponse>> buscarTodos() {
+        List<AtendimentoResponse> atendimentos = atendimentoService.buscarTodos().stream()
+                .map(HospitalMapper::toResponse)
+                .toList();
+        return ResponseEntity.ok(atendimentos);
+    }
+
+    @GetMapping("/filtro/status")
+    @Operation(summary = "Filtra atendimentos por status")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Atendimentos filtrados com sucesso"),
+            @ApiResponse(responseCode = "400", description = "Parametro invalido")
+    })
+    public ResponseEntity<List<AtendimentoResponse>> filtrarPorStatus(@RequestParam StatusAtendimento status) {
+        List<AtendimentoResponse> atendimentos = atendimentoService.filtrarPorStatus(status).stream()
+                .map(HospitalMapper::toResponse)
+                .toList();
+        return ResponseEntity.ok(atendimentos);
+    }
+
+    @GetMapping("/filtro/tipo")
+    @Operation(summary = "Filtra atendimentos por tipo")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Atendimentos filtrados com sucesso"),
+            @ApiResponse(responseCode = "400", description = "Parametro invalido")
+    })
+    public ResponseEntity<List<AtendimentoResponse>> filtrarPorTipo(@RequestParam TipoAtendimento tipo) {
+        List<AtendimentoResponse> atendimentos = atendimentoService.filtrarPorTipo(tipo).stream()
+                .map(HospitalMapper::toResponse)
+                .toList();
+        return ResponseEntity.ok(atendimentos);
+    }
+
+    @GetMapping("/ordenados-por-data")
+    @Operation(summary = "Lista atendimentos ordenados por data e hora")
+    @ApiResponse(responseCode = "200", description = "Atendimentos ordenados com sucesso")
+    public ResponseEntity<List<AtendimentoResponse>> listarOrdenadoPorDataHora() {
+        List<AtendimentoResponse> atendimentos = atendimentoService.listarOrdenadoPorDataHora().stream()
+                .map(HospitalMapper::toResponse)
+                .toList();
+        return ResponseEntity.ok(atendimentos);
     }
 
     @GetMapping("/{id}")
@@ -43,8 +87,8 @@ public class AtendimentoController {
             @ApiResponse(responseCode = "200", description = "Atendimento encontrado"),
             @ApiResponse(responseCode = "404", description = "Atendimento nao encontrado")
     })
-    public ResponseEntity<Atendimento> buscarPorId(@PathVariable Long id) {
-        return ResponseEntity.ok(atendimentoService.buscarPorId(id));
+    public ResponseEntity<AtendimentoResponse> buscarPorId(@PathVariable Long id) {
+        return ResponseEntity.ok(HospitalMapper.toResponse(atendimentoService.buscarPorId(id)));
     }
 
     @PostMapping
@@ -53,8 +97,8 @@ public class AtendimentoController {
             @ApiResponse(responseCode = "201", description = "Atendimento cadastrado com sucesso"),
             @ApiResponse(responseCode = "400", description = "Dados invalidos")
     })
-    public ResponseEntity<Atendimento> inserir(@RequestBody @Valid Atendimento atendimento) {
-        return ResponseEntity.status(HttpStatus.CREATED).body(atendimentoService.cadastrar(atendimento));
+    public ResponseEntity<AtendimentoResponse> inserir(@RequestBody @Valid AtendimentoRequest request) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(HospitalMapper.toResponse(atendimentoService.cadastrar(request)));
     }
 
     @PutMapping("/{id}")
@@ -64,8 +108,8 @@ public class AtendimentoController {
             @ApiResponse(responseCode = "400", description = "Dados invalidos"),
             @ApiResponse(responseCode = "404", description = "Atendimento nao encontrado")
     })
-    public ResponseEntity<Atendimento> atualizar(@PathVariable Long id, @RequestBody @Valid Atendimento atendimento) {
-        return ResponseEntity.ok(atendimentoService.atualizar(id, atendimento));
+    public ResponseEntity<AtendimentoResponse> atualizar(@PathVariable Long id, @RequestBody @Valid AtendimentoRequest request) {
+        return ResponseEntity.ok(HospitalMapper.toResponse(atendimentoService.atualizar(id, request)));
     }
 
     @DeleteMapping("/{id}")

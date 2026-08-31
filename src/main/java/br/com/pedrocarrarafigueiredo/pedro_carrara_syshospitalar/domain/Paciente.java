@@ -40,15 +40,6 @@ public class Paciente implements Comparable<Paciente> {
 
     public Paciente(String nome, String cpf,
         LocalDate dataNascimento, char sexo, String telefone, String email, Boolean ativo) {
-        this(null, nome, cpf, dataNascimento, sexo, telefone, email, ativo);
-    }
-
-    public Paciente(Long id, String nome, String cpf,
-        LocalDate dataNascimento, char sexo, String telefone, String email, Boolean ativo) {
-        if (id != null) {
-            validarId(id);
-            this.id = id;
-        }
         setNome(nome);
         setCpf(cpf);
         setDataNascimento(dataNascimento);

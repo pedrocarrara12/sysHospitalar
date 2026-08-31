@@ -22,13 +22,6 @@ public abstract class Prestador {
     }
 
     public Prestador(String nome, int idade, String cpf, String email, Boolean ativo) {
-        this(null, nome, idade, cpf, email, ativo);
-    }
-
-    public Prestador(Long id, String nome, int idade, String cpf, String email, Boolean ativo) {
-        if (id != null) {
-            atribuirId(id);
-        }
         setNome(nome);
         setIdade(idade);
         setCpf(cpf);
@@ -51,10 +44,6 @@ public abstract class Prestador {
         if (id == null || id <= 0) {
             throw new IllegalArgumentException("Id do prestador deve ser positivo.");
         }
-    }
-
-    protected void atribuirId(Long id) {
-        setId(id);
     }
 
     public String getNome() {

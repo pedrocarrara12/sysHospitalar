@@ -1,6 +1,8 @@
 package br.com.pedrocarrarafigueiredo.pedro_carrara_syshospitalar.service;
 
 import br.com.pedrocarrarafigueiredo.pedro_carrara_syshospitalar.domain.Enfermeiro;
+import br.com.pedrocarrarafigueiredo.pedro_carrara_syshospitalar.dto.mapper.HospitalMapper;
+import br.com.pedrocarrarafigueiredo.pedro_carrara_syshospitalar.dto.request.EnfermeiroRequest;
 import br.com.pedrocarrarafigueiredo.pedro_carrara_syshospitalar.exception.ObjetoNaoEncontradoException;
 import br.com.pedrocarrarafigueiredo.pedro_carrara_syshospitalar.repository.EnfermeiroRepository;
 import org.springframework.stereotype.Service;
@@ -15,20 +17,21 @@ public class EnfermeiroService {
         this.enfermeiroRepository = enfermeiroRepository;
     }
 
-    public Enfermeiro cadastrar(Enfermeiro enfermeiro) {
-        if (enfermeiro == null) {
+    public Enfermeiro cadastrar(EnfermeiroRequest request) {
+        if (request == null) {
             throw new IllegalArgumentException("Enfermeiro nao pode ser nulo");
         }
 
-        return enfermeiroRepository.save(enfermeiro);
+        return enfermeiroRepository.save(HospitalMapper.toEntity(request));
     }
 
-    public Enfermeiro atualizar(Long id, Enfermeiro enfermeiro) {
-        if (enfermeiro == null) {
+    public Enfermeiro atualizar(Long id, EnfermeiroRequest request) {
+        if (request == null) {
             throw new IllegalArgumentException("Enfermeiro nao pode ser nulo");
         }
 
         buscarPorId(id);
+        Enfermeiro enfermeiro = HospitalMapper.toEntity(request);
         enfermeiro.setId(id);
         return enfermeiroRepository.save(enfermeiro);
     }

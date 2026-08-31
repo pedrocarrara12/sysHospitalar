@@ -32,11 +32,9 @@ public class Atendimento implements Comparable<Atendimento> {
     public Atendimento() {
     }
 
-    public Atendimento(Long codigoAtendimento, LocalDateTime dataHoraAtendimento,
+    public Atendimento(LocalDateTime dataHoraAtendimento,
         TipoAtendimento tipoAtendimento, StatusAtendimento statusAtendimento,
         Paciente paciente, Medico medico) {
-        validarId(codigoAtendimento);
-        this.id = codigoAtendimento;
         setDataHoraAtendimento(dataHoraAtendimento);
         setTipoAtendimento(tipoAtendimento);
         setStatusAtendimento(statusAtendimento);
