@@ -1,0 +1,68 @@
+package br.com.pedrocarrarafigueiredo.pedro_carrara_syshospitalar.enfermeiro.service;
+
+import br.com.pedrocarrarafigueiredo.pedro_carrara_syshospitalar.dto.mapper.HospitalMapper;
+import br.com.pedrocarrarafigueiredo.pedro_carrara_syshospitalar.enfermeiro.domain.Enfermeiro;
+import br.com.pedrocarrarafigueiredo.pedro_carrara_syshospitalar.enfermeiro.dto.request.EnfermeiroRequest;
+import br.com.pedrocarrarafigueiredo.pedro_carrara_syshospitalar.enfermeiro.repository.EnfermeiroRepository;
+import br.com.pedrocarrarafigueiredo.pedro_carrara_syshospitalar.exception.ObjetoNaoEncontradoException;
+import org.springframework.stereotype.Service;
+
+import java.util.List;
+
+@Service
+public class EnfermeiroService {
+    private final EnfermeiroRepository enfermeiroRepository;
+
+    public EnfermeiroService(EnfermeiroRepository enfermeiroRepository) {
+        this.enfermeiroRepository = enfermeiroRepository;
+    }
+
+    public Enfermeiro cadastrar(EnfermeiroRequest request) {
+        if (request == null) {
+            throw new IllegalArgumentException("Enfermeiro nao pode ser nulo");
+        }
+
+        return enfermeiroRepository.save(HospitalMapper.toEntity(request));
+    }
+
+    public Enfermeiro atualizar(Long id, EnfermeiroRequest request) {
+        if (request == null) {
+            throw new IllegalArgumentException("Enfermeiro nao pode ser nulo");
+        }
+
+        buscarPorId(id);
+        Enfermeiro enfermeiro = HospitalMapper.toEntity(request);
+        enfermeiro.setId(id);
+        return enfermeiroRepository.save(enfermeiro);
+    }
+
+    public void remover(Long id) {
+        buscarPorId(id);
+        enfermeiroRepository.deleteById(id);
+    }
+
+    public Enfermeiro buscarPorId(Long id) {
+        if (id == null) {
+            throw new IllegalArgumentException("Id nao pode ser nulo");
+        }
+
+        return enfermeiroRepository.findById(id)
+                .orElseThrow(() -> new ObjetoNaoEncontradoException("Enfermeiro nao encontrado"));
+    }
+
+    public List<Enfermeiro> buscarTodos() {
+        return enfermeiroRepository.findAll();
+    }
+
+    public List<Enfermeiro> filtrarPorSetor(String setor) {
+        if (setor == null || setor.isBlank()) {
+            throw new IllegalArgumentException("Setor e obrigatorio.");
+        }
+
+        return enfermeiroRepository.findBySetorIgnoreCase(setor);
+    }
+
+    public List<Enfermeiro> listarAtivos() {
+        return enfermeiroRepository.findByAtivoTrue();
+    }
+}

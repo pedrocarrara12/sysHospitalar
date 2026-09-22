@@ -35,6 +35,78 @@ Cliente HTTP -> Controller -> Service -> Repository -> Banco de Dados
 - Tratamento padronizado de erros.
 - Documentacao da API via Swagger.
 
+## Etapa 1 - Organizacao Arquitetural
+
+Esta etapa tem como objetivo revisar a organizacao interna da aplicacao antes de qualquer evolucao para microsservicos. O projeto permanece como uma unica aplicacao Spring Boot, mas suas responsabilidades devem ficar claras para facilitar manutencao e futuras separacoes.
+
+A arquitetura base esperada continua sendo:
+
+```text
+Cliente HTTP -> Controller -> Service -> Repository -> Banco de Dados
+```
+
+### Modulos identificados
+
+#### Pacientes
+
+Responsavel pelo cadastro, consulta, atualizacao, remocao, filtros e manutencao dos dados pessoais dos pacientes atendidos pelo sistema.
+
+#### Equipe Clinica
+
+Responsavel pelo cadastro e manutencao dos profissionais de saude. No codigo, essa responsabilidade foi separada em dois pacotes de dominio:
+
+- `medico`: dados de medicos, incluindo especialidade, CRM e status ativo.
+- `enfermeiro`: dados de enfermeiros, incluindo setor, COREN e status ativo.
+
+#### Atendimentos
+
+Responsavel pelo registro dos atendimentos realizados, incluindo tipo, status, data e hora, alem do vinculo com paciente e medico.
+
+### Dependencias entre modulos
+
+Um exemplo de dependencia existente e:
+
+```text
+Atendimentos -> Pacientes / Medicos
+```
+
+Um atendimento precisa consultar um paciente e um medico existentes antes de ser cadastrado ou atualizado. Isso mostra que o modulo de atendimentos depende das informacoes mantidas pelos modulos de pacientes e equipe clinica.
+
+### Candidato a servico independente
+
+O modulo de `Atendimentos` e um candidato futuro a servico independente.
+
+Responsabilidade:
+
+- Registrar e manter o ciclo de vida dos atendimentos hospitalares.
+- Controlar tipo, status, data e hora do atendimento.
+- Relacionar o atendimento aos identificadores de paciente e medico.
+
+Motivo para separacao futura:
+
+- Possui fluxo operacional proprio.
+- Depende de outros modulos por identificadores claros.
+- Pode evoluir com regras especificas, como historico de atendimento, agenda, triagem ou integracao com outros sistemas.
+
+Partes que dependem dele atualmente:
+
+- Controllers e services de atendimentos.
+- Consultas da API relacionadas a status, tipo e ordenacao por data.
+- Documentacao dos endpoints de atendimentos no Swagger e no README.
+
+### Checklist de conformidade da Etapa 1
+
+- Controllers responsaveis pela comunicacao HTTP.
+- Services responsaveis pelas regras e operacoes da aplicacao.
+- Repositories responsaveis pelo acesso aos dados.
+- Controllers sem acesso direto aos repositories.
+- DTOs de entrada validados com Bean Validation.
+- Excecoes tratadas de forma centralizada.
+- Consultas personalizadas com Spring Data JPA.
+- Documentacao dos endpoints via OpenAPI/Swagger.
+- README contendo modulos, dependencia entre modulos e candidato a servico independente.
+- Tag futura `etapa-1` criada somente ao final da organizacao e validacao da entrega.
+
 ## Entidades principais
 
 ### Paciente
@@ -118,18 +190,49 @@ Na API, o cadastro de atendimento recebe apenas os ids relacionados:
 
 ```text
 src/main/java/br/com/pedrocarrarafigueiredo/pedro_carrara_syshospitalar
+|-- atendimento
+|   |-- controller
+|   |-- domain
+|   |-- dto
+|   |   |-- request
+|   |   |-- response
+|   |-- enuns
+|   |-- repository
+|   |-- service
 |-- config
-|-- controller
 |-- domain
+|   |-- Prestador.java
 |-- dto
+|   |-- ErrorResponse.java
 |   |-- mapper
-|   |-- request
-|   |-- response
-|-- enuns
+|-- enfermeiro
+|   |-- controller
+|   |-- domain
+|   |-- dto
+|   |   |-- request
+|   |   |-- response
+|   |-- repository
+|   |-- service
 |-- exception
-|-- repository
-|-- service
+|-- medico
+|   |-- controller
+|   |-- domain
+|   |-- dto
+|   |   |-- request
+|   |   |-- response
+|   |-- repository
+|   |-- service
+|-- paciente
+|   |-- controller
+|   |-- domain
+|   |-- dto
+|   |   |-- request
+|   |   |-- response
+|   |-- repository
+|   |-- service
 ```
+
+Os pacotes `atendimento`, `paciente`, `medico` e `enfermeiro` concentram as classes especificas de cada dominio. Os pacotes `config`, `exception`, `dto.mapper` e a classe `Prestador` permanecem compartilhados nesta etapa.
 
 ## Como executar o projeto
 

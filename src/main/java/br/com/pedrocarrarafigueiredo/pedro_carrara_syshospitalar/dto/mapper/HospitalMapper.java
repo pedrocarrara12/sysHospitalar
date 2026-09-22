@@ -1,17 +1,17 @@
 package br.com.pedrocarrarafigueiredo.pedro_carrara_syshospitalar.dto.mapper;
 
-import br.com.pedrocarrarafigueiredo.pedro_carrara_syshospitalar.domain.Atendimento;
-import br.com.pedrocarrarafigueiredo.pedro_carrara_syshospitalar.domain.Enfermeiro;
-import br.com.pedrocarrarafigueiredo.pedro_carrara_syshospitalar.domain.Medico;
-import br.com.pedrocarrarafigueiredo.pedro_carrara_syshospitalar.domain.Paciente;
-import br.com.pedrocarrarafigueiredo.pedro_carrara_syshospitalar.dto.request.AtendimentoRequest;
-import br.com.pedrocarrarafigueiredo.pedro_carrara_syshospitalar.dto.request.EnfermeiroRequest;
-import br.com.pedrocarrarafigueiredo.pedro_carrara_syshospitalar.dto.request.MedicoRequest;
-import br.com.pedrocarrarafigueiredo.pedro_carrara_syshospitalar.dto.request.PacienteRequest;
-import br.com.pedrocarrarafigueiredo.pedro_carrara_syshospitalar.dto.response.AtendimentoResponse;
-import br.com.pedrocarrarafigueiredo.pedro_carrara_syshospitalar.dto.response.EnfermeiroResponse;
-import br.com.pedrocarrarafigueiredo.pedro_carrara_syshospitalar.dto.response.MedicoResponse;
-import br.com.pedrocarrarafigueiredo.pedro_carrara_syshospitalar.dto.response.PacienteResponse;
+import br.com.pedrocarrarafigueiredo.pedro_carrara_syshospitalar.atendimento.domain.Atendimento;
+import br.com.pedrocarrarafigueiredo.pedro_carrara_syshospitalar.atendimento.dto.request.AtendimentoRequest;
+import br.com.pedrocarrarafigueiredo.pedro_carrara_syshospitalar.enfermeiro.domain.Enfermeiro;
+import br.com.pedrocarrarafigueiredo.pedro_carrara_syshospitalar.enfermeiro.dto.request.EnfermeiroRequest;
+import br.com.pedrocarrarafigueiredo.pedro_carrara_syshospitalar.enfermeiro.dto.response.EnfermeiroResponse;
+import br.com.pedrocarrarafigueiredo.pedro_carrara_syshospitalar.medico.domain.Medico;
+import br.com.pedrocarrarafigueiredo.pedro_carrara_syshospitalar.medico.dto.request.MedicoRequest;
+import br.com.pedrocarrarafigueiredo.pedro_carrara_syshospitalar.medico.dto.response.MedicoResponse;
+import br.com.pedrocarrarafigueiredo.pedro_carrara_syshospitalar.paciente.domain.Paciente;
+import br.com.pedrocarrarafigueiredo.pedro_carrara_syshospitalar.paciente.dto.request.PacienteRequest;
+import br.com.pedrocarrarafigueiredo.pedro_carrara_syshospitalar.paciente.dto.response.PacienteResponse;
+import br.com.pedrocarrarafigueiredo.pedro_carrara_syshospitalar.atendimento.dto.response.AtendimentoResponse;
 
 public final class HospitalMapper {
 
