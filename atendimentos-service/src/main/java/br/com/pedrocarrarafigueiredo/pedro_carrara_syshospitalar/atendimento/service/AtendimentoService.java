@@ -1,6 +1,5 @@
 package br.com.pedrocarrarafigueiredo.pedro_carrara_syshospitalar.atendimento.service;
 
-import br.com.pedrocarrarafigueiredo.pedro_carrara_syshospitalar.atendimento.client.AtendimentoClient;
 import br.com.pedrocarrarafigueiredo.pedro_carrara_syshospitalar.atendimento.domain.Atendimento;
 import br.com.pedrocarrarafigueiredo.pedro_carrara_syshospitalar.dto.mapper.HospitalMapper;
 import br.com.pedrocarrarafigueiredo.pedro_carrara_syshospitalar.atendimento.dto.request.AtendimentoRequest;
@@ -8,10 +7,6 @@ import br.com.pedrocarrarafigueiredo.pedro_carrara_syshospitalar.atendimento.enu
 import br.com.pedrocarrarafigueiredo.pedro_carrara_syshospitalar.atendimento.enuns.TipoAtendimento;
 import br.com.pedrocarrarafigueiredo.pedro_carrara_syshospitalar.exception.ObjetoNaoEncontradoException;
 import br.com.pedrocarrarafigueiredo.pedro_carrara_syshospitalar.atendimento.repository.AtendimentoRepository;
-import br.com.pedrocarrarafigueiredo.pedro_carrara_syshospitalar.medico.domain.Medico;
-import br.com.pedrocarrarafigueiredo.pedro_carrara_syshospitalar.medico.repository.MedicoRepository;
-import br.com.pedrocarrarafigueiredo.pedro_carrara_syshospitalar.paciente.domain.Paciente;
-import br.com.pedrocarrarafigueiredo.pedro_carrara_syshospitalar.paciente.repository.PacienteRepository;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -19,15 +14,10 @@ import java.util.List;
 @Service
 public class AtendimentoService {
 
-    private final AtendimentoClient atendimentoClient;
-    private final PacienteRepository pacienteRepository;
-    private final MedicoRepository medicoRepository;
+    private final AtendimentoRepository atendimentoRepository;
 
-    public AtendimentoService(AtendimentoClient atendimentoClient, PacienteRepository pacienteRepository,
-        MedicoRepository medicoRepository) {
-        this.atendimentoClient = atendimentoClient;
-        this.pacienteRepository = pacienteRepository;
-        this.medicoRepository = medicoRepository;
+    public AtendimentoService(AtendimentoRepository atendimentoRepository) {
+        this.atendimentoRepository = atendimentoRepository;
     }
 
     public Atendimento cadastrar(AtendimentoRequest request) {
@@ -36,7 +26,7 @@ public class AtendimentoService {
         }
 
         Atendimento atendimento = criarAtendimento(request);
-        return atendimentoClient.cadastrar(request);
+        return atendimentoRepository.save(atendimento);
     }
 
     public Atendimento atualizar(Long id, AtendimentoRequest request) {
@@ -89,11 +79,6 @@ public class AtendimentoService {
     }
 
     private Atendimento criarAtendimento(AtendimentoRequest request) {
-        Paciente paciente = pacienteRepository.findById(request.pacienteId())
-                .orElseThrow(() -> new ObjetoNaoEncontradoException("Paciente nao encontrado"));
-        Medico medico = medicoRepository.findById(request.medicoId())
-                .orElseThrow(() -> new ObjetoNaoEncontradoException("Medico nao encontrado"));
-
-        return HospitalMapper.toEntity(request, paciente, medico);
+        return HospitalMapper.toEntity(request);
     }
 }
