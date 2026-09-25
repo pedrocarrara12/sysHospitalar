@@ -5,10 +5,10 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 
 @SpringBootApplication
 
-public class PedroCarraraSyshospitalarApplication  {
+public class AtendimentosServiceApplication  {
 
     public static void main(String[] args) {
-        SpringApplication.run(PedroCarraraSyshospitalarApplication.class, args);
+        SpringApplication.run(AtendimentosServiceApplication.class, args);
     }
 
 }

@@ -1,0 +1,610 @@
+{
+  "info": {
+    "_postman_id": "6c23f9c0-0d69-4d85-9b1c-syshospitalar-etapa2",
+    "name": "SysHospitalar - Etapa 2",
+    "description": "Collection para validar a Etapa 2 do SysHospitalar: aplicacao principal em http://localhost:8080, atendimentos-service em http://localhost:8081 e comunicacao entre as duas aplicacoes.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrlPrincipal",
+      "value": "http://localhost:8080",
+      "type": "string"
+    },
+    {
+      "key": "baseUrlAtendimentos",
+      "value": "http://localhost:8081",
+      "type": "string"
+    },
+    {
+      "key": "pacienteId",
+      "value": "1",
+      "type": "string"
+    },
+    {
+      "key": "medicoId",
+      "value": "1",
+      "type": "string"
+    },
+    {
+      "key": "atendimentoIdPrincipal",
+      "value": "1",
+      "type": "string"
+    },
+    {
+      "key": "atendimentoIdServico",
+      "value": "1",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "01 - Preparacao na aplicacao principal",
+      "item": [
+        {
+          "name": "Criar paciente",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const suffix = String(Date.now()).slice(-8);",
+                  "pm.collectionVariables.set('cpfPaciente', `123${suffix}`.slice(0, 11));",
+                  "pm.collectionVariables.set('emailPaciente', `maria.${Date.now()}@email.com`);"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Paciente criado com 201', function () {",
+                  "  pm.response.to.have.status(201);",
+                  "});",
+                  "const body = pm.response.json();",
+                  "pm.collectionVariables.set('pacienteId', body.id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nome\": \"Maria Silva\",\n  \"cpf\": \"{{cpfPaciente}}\",\n  \"dataNascimento\": \"1990-05-10\",\n  \"sexo\": \"F\",\n  \"telefone\": \"65999990000\",\n  \"email\": \"{{emailPaciente}}\",\n  \"ativo\": true\n}"
+            },
+            "url": {
+              "raw": "{{baseUrlPrincipal}}/pacientes",
+              "host": [
+                "{{baseUrlPrincipal}}"
+              ],
+              "path": [
+                "pacientes"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Criar medico",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const suffix = String(Date.now()).slice(-8);",
+                  "pm.collectionVariables.set('cpfMedico', `987${suffix}`.slice(0, 11));",
+                  "pm.collectionVariables.set('emailMedico', `joao.${Date.now()}@email.com`);",
+                  "pm.collectionVariables.set('crmMedico', `CRM${suffix}`);"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Medico criado com 201', function () {",
+                  "  pm.response.to.have.status(201);",
+                  "});",
+                  "const body = pm.response.json();",
+                  "pm.collectionVariables.set('medicoId', body.id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nome\": \"Joao Medico\",\n  \"idade\": 40,\n  \"cpf\": \"{{cpfMedico}}\",\n  \"email\": \"{{emailMedico}}\",\n  \"ativo\": true,\n  \"crm\": \"{{crmMedico}}\",\n  \"especialidade\": \"Cardiologia\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrlPrincipal}}/medicos",
+              "host": [
+                "{{baseUrlPrincipal}}"
+              ],
+              "path": [
+                "medicos"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "02 - Comunicacao principal -> atendimentos-service",
+      "item": [
+        {
+          "name": "Criar atendimento pela aplicacao principal",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Atendimento criado com 201', function () {",
+                  "  pm.response.to.have.status(201);",
+                  "});",
+                  "const body = pm.response.json();",
+                  "pm.collectionVariables.set('atendimentoIdPrincipal', body.id);",
+                  "pm.test('Resposta foi enriquecida pela aplicacao principal', function () {",
+                  "  pm.expect(body).to.have.property('pacienteNome');",
+                  "  pm.expect(body).to.have.property('medicoNome');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"dataHoraAtendimento\": \"2026-08-30T20:30:00\",\n  \"tipoAtendimento\": \"URGENCIA\",\n  \"statusAtendimento\": \"ANDAMENTO\",\n  \"pacienteId\": {{pacienteId}},\n  \"medicoId\": {{medicoId}}\n}"
+            },
+            "url": {
+              "raw": "{{baseUrlPrincipal}}/atendimentos",
+              "host": [
+                "{{baseUrlPrincipal}}"
+              ],
+              "path": [
+                "atendimentos"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Listar atendimentos pela aplicacao principal",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Lista retornada com 200', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrlPrincipal}}/atendimentos",
+              "host": [
+                "{{baseUrlPrincipal}}"
+              ],
+              "path": [
+                "atendimentos"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Buscar atendimento por ID pela aplicacao principal",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Atendimento encontrado com 200', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrlPrincipal}}/atendimentos/{{atendimentoIdPrincipal}}",
+              "host": [
+                "{{baseUrlPrincipal}}"
+              ],
+              "path": [
+                "atendimentos",
+                "{{atendimentoIdPrincipal}}"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Filtrar atendimentos por status pela aplicacao principal",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrlPrincipal}}/atendimentos/filtro/status?status=ANDAMENTO",
+              "host": [
+                "{{baseUrlPrincipal}}"
+              ],
+              "path": [
+                "atendimentos",
+                "filtro",
+                "status"
+              ],
+              "query": [
+                {
+                  "key": "status",
+                  "value": "ANDAMENTO"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Filtrar atendimentos por tipo pela aplicacao principal",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrlPrincipal}}/atendimentos/filtro/tipo?tipo=URGENCIA",
+              "host": [
+                "{{baseUrlPrincipal}}"
+              ],
+              "path": [
+                "atendimentos",
+                "filtro",
+                "tipo"
+              ],
+              "query": [
+                {
+                  "key": "tipo",
+                  "value": "URGENCIA"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Listar atendimentos ordenados por data pela aplicacao principal",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrlPrincipal}}/atendimentos/ordenados-por-data",
+              "host": [
+                "{{baseUrlPrincipal}}"
+              ],
+              "path": [
+                "atendimentos",
+                "ordenados-por-data"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Atualizar atendimento pela aplicacao principal",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Atendimento atualizado com 200', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"dataHoraAtendimento\": \"2026-08-30T21:00:00\",\n  \"tipoAtendimento\": \"AMBULATORIAL\",\n  \"statusAtendimento\": \"CONCLUIDO\",\n  \"pacienteId\": {{pacienteId}},\n  \"medicoId\": {{medicoId}}\n}"
+            },
+            "url": {
+              "raw": "{{baseUrlPrincipal}}/atendimentos/{{atendimentoIdPrincipal}}",
+              "host": [
+                "{{baseUrlPrincipal}}"
+              ],
+              "path": [
+                "atendimentos",
+                "{{atendimentoIdPrincipal}}"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "03 - atendimentos-service isolado",
+      "item": [
+        {
+          "name": "Listar atendimentos direto no servico",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrlAtendimentos}}/atendimentos",
+              "host": [
+                "{{baseUrlAtendimentos}}"
+              ],
+              "path": [
+                "atendimentos"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Criar atendimento direto no servico",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Atendimento criado direto no servico com 201', function () {",
+                  "  pm.response.to.have.status(201);",
+                  "});",
+                  "const body = pm.response.json();",
+                  "pm.collectionVariables.set('atendimentoIdServico', body.id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"dataHoraAtendimento\": \"2026-08-31T09:15:00\",\n  \"tipoAtendimento\": \"INTERNACAO\",\n  \"statusAtendimento\": \"ANDAMENTO\",\n  \"pacienteId\": {{pacienteId}},\n  \"medicoId\": {{medicoId}}\n}"
+            },
+            "url": {
+              "raw": "{{baseUrlAtendimentos}}/atendimentos",
+              "host": [
+                "{{baseUrlAtendimentos}}"
+              ],
+              "path": [
+                "atendimentos"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Buscar atendimento direto no servico",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrlAtendimentos}}/atendimentos/{{atendimentoIdServico}}",
+              "host": [
+                "{{baseUrlAtendimentos}}"
+              ],
+              "path": [
+                "atendimentos",
+                "{{atendimentoIdServico}}"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Filtrar por status direto no servico",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrlAtendimentos}}/atendimentos/filtro/status?status=ANDAMENTO",
+              "host": [
+                "{{baseUrlAtendimentos}}"
+              ],
+              "path": [
+                "atendimentos",
+                "filtro",
+                "status"
+              ],
+              "query": [
+                {
+                  "key": "status",
+                  "value": "ANDAMENTO"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Filtrar por tipo direto no servico",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrlAtendimentos}}/atendimentos/filtro/tipo?tipo=INTERNACAO",
+              "host": [
+                "{{baseUrlAtendimentos}}"
+              ],
+              "path": [
+                "atendimentos",
+                "filtro",
+                "tipo"
+              ],
+              "query": [
+                {
+                  "key": "tipo",
+                  "value": "INTERNACAO"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Listar ordenados por data direto no servico",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrlAtendimentos}}/atendimentos/ordenados-por-data",
+              "host": [
+                "{{baseUrlAtendimentos}}"
+              ],
+              "path": [
+                "atendimentos",
+                "ordenados-por-data"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "04 - Cenarios de erro",
+      "item": [
+        {
+          "name": "Paciente inexistente ao criar atendimento pela principal",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Paciente inexistente retorna 404', function () {",
+                  "  pm.response.to.have.status(404);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"dataHoraAtendimento\": \"2026-08-30T20:30:00\",\n  \"tipoAtendimento\": \"URGENCIA\",\n  \"statusAtendimento\": \"ANDAMENTO\",\n  \"pacienteId\": 999999,\n  \"medicoId\": {{medicoId}}\n}"
+            },
+            "url": {
+              "raw": "{{baseUrlPrincipal}}/atendimentos",
+              "host": [
+                "{{baseUrlPrincipal}}"
+              ],
+              "path": [
+                "atendimentos"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Servico de atendimentos indisponivel pela principal",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Com atendimentos-service desligado, retorna 503', function () {",
+                  "  pm.response.to.have.status(503);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "description": "Antes de executar este request, desligue o atendimentos-service e mantenha a aplicacao principal ligada.",
+            "url": {
+              "raw": "{{baseUrlPrincipal}}/atendimentos",
+              "host": [
+                "{{baseUrlPrincipal}}"
+              ],
+              "path": [
+                "atendimentos"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    }
+  ],
+  "event": [
+    {
+      "listen": "test",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "pm.test('Resposta nao deve conter stack trace', function () {",
+          "  const text = pm.response.text();",
+          "  pm.expect(text).to.not.include('java.lang');",
+          "  pm.expect(text).to.not.include('feign.');",
+          "});"
+        ]
+      }
+    }
+  ]
+}
