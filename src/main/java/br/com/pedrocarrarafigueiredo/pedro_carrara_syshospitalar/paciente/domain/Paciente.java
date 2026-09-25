@@ -1,19 +1,13 @@
 package br.com.pedrocarrarafigueiredo.pedro_carrara_syshospitalar.paciente.domain;
 
-import br.com.pedrocarrarafigueiredo.pedro_carrara_syshospitalar.atendimento.domain.Atendimento;
-import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
-import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
 
 import java.time.LocalDate;
 import java.time.Period;
-import java.util.Collections;
-import java.util.Set;
-import java.util.TreeSet;
 
 @Entity
 @Table(name = "paciente")
@@ -30,10 +24,6 @@ public class Paciente implements Comparable<Paciente> {
     private String email;
     private boolean ativo;
 
-
-    @JsonIgnore
-    @OneToMany(mappedBy = "paciente")
-    private Set<Atendimento> atendimentos = new TreeSet<>();
 
     public Paciente() {
         this.ativo = true;
@@ -148,32 +138,8 @@ public class Paciente implements Comparable<Paciente> {
         this.ativo = ativo;
     }
 
-    public Set<Atendimento> getAtendimentos() {
-        return Collections.unmodifiableSet(atendimentos);
-    }
-
-    public void adicionarAtendimento(Atendimento atendimento) {
-        if (atendimento == null) {
-            throw new IllegalArgumentException("Atendimento nao pode ser nulo.");
-        }
-
-        atendimentos.add(atendimento);
-    }
-
-    public boolean removerAtendimento(Atendimento atendimento) {
-        return atendimentos.remove(atendimento);
-    }
-
-    public int quantidadeAtendimentos() {
-        return atendimentos.size();
-    }
-
     public int calcularIdade() {
         return Period.between(dataNascimento, LocalDate.now()).getYears();
-    }
-
-    public boolean possuiAtendimentoEmAndamento() {
-        return atendimentos.stream().anyMatch(Atendimento::estaEmAndamento);
     }
 
     @Override
@@ -188,7 +154,6 @@ public class Paciente implements Comparable<Paciente> {
                 ", telefone='" + telefone + '\'' +
                 ", email='" + email + '\'' +
                 ", ativo=" + ativo +
-                ", quantidadeAtendimentos=" + atendimentos.size() +
                 '}';
     }
 

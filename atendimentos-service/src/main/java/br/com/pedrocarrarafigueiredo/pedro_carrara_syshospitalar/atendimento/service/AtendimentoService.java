@@ -5,8 +5,8 @@ import br.com.pedrocarrarafigueiredo.pedro_carrara_syshospitalar.dto.mapper.Hosp
 import br.com.pedrocarrarafigueiredo.pedro_carrara_syshospitalar.atendimento.dto.request.AtendimentoRequest;
 import br.com.pedrocarrarafigueiredo.pedro_carrara_syshospitalar.atendimento.enuns.StatusAtendimento;
 import br.com.pedrocarrarafigueiredo.pedro_carrara_syshospitalar.atendimento.enuns.TipoAtendimento;
-import br.com.pedrocarrarafigueiredo.pedro_carrara_syshospitalar.exception.ObjetoNaoEncontradoException;
 import br.com.pedrocarrarafigueiredo.pedro_carrara_syshospitalar.atendimento.repository.AtendimentoRepository;
+import br.com.pedrocarrarafigueiredo.pedro_carrara_syshospitalar.exception.ObjetoNaoEncontradoException;
 import org.springframework.stereotype.Service;
 
 import java.util.List;

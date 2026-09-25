@@ -1,11 +1,9 @@
 package br.com.pedrocarrarafigueiredo.pedro_carrara_syshospitalar.atendimento.service;
 
 import br.com.pedrocarrarafigueiredo.pedro_carrara_syshospitalar.atendimento.client.AtendimentoClient;
-import br.com.pedrocarrarafigueiredo.pedro_carrara_syshospitalar.atendimento.domain.Atendimento;
+import br.com.pedrocarrarafigueiredo.pedro_carrara_syshospitalar.atendimento.dto.request.AtendimentoRequest;
 import br.com.pedrocarrarafigueiredo.pedro_carrara_syshospitalar.atendimento.dto.response.AtendimentoResponse;
 import br.com.pedrocarrarafigueiredo.pedro_carrara_syshospitalar.atendimento.dto.response.AtendimentoServiceResponse;
-import br.com.pedrocarrarafigueiredo.pedro_carrara_syshospitalar.dto.mapper.HospitalMapper;
-import br.com.pedrocarrarafigueiredo.pedro_carrara_syshospitalar.atendimento.dto.request.AtendimentoRequest;
 import br.com.pedrocarrarafigueiredo.pedro_carrara_syshospitalar.atendimento.enuns.StatusAtendimento;
 import br.com.pedrocarrarafigueiredo.pedro_carrara_syshospitalar.atendimento.enuns.TipoAtendimento;
 import br.com.pedrocarrarafigueiredo.pedro_carrara_syshospitalar.exception.ObjetoNaoEncontradoException;
@@ -32,35 +30,29 @@ public class AtendimentoService {
     }
 
     public AtendimentoResponse cadastrar(AtendimentoRequest request) {
-        if (request == null) {
-            throw new IllegalArgumentException("Atendimento nao pode ser nulo");
-        }
+        validarRequest(request);
+        validarPacienteEMedico(request);
 
         AtendimentoServiceResponse atendimentoServiceResponse = atendimentoClient.cadastrar(request);
         return converterParaResponse(atendimentoServiceResponse);
     }
 
     public AtendimentoResponse atualizar(Long id, AtendimentoRequest request) {
-        if (request == null) {
-            throw new IllegalArgumentException("Atendimento nao pode ser nulo");
-        }
+        validarId(id);
+        validarRequest(request);
+        validarPacienteEMedico(request);
 
-        buscarPorId(id);
-        Atendimento atendimento = criarAtendimento(request);
-        atendimento.setId(id);
         AtendimentoServiceResponse atendimentoSalvo = atendimentoClient.atualizar(id, request);
         return converterParaResponse(atendimentoSalvo);
     }
 
     public void remover(Long id) {
-        buscarPorId(id);
+        validarId(id);
         atendimentoClient.remover(id);
     }
 
     public AtendimentoResponse buscarPorId(Long id) {
-        if (id == null) {
-            throw new IllegalArgumentException("Id nao pode ser nulo");
-        }
+        validarId(id);
 
         AtendimentoServiceResponse atendimentoServiceResponse = atendimentoClient.buscarPorId(id);
         return converterParaResponse(atendimentoServiceResponse);
@@ -90,13 +82,23 @@ public class AtendimentoService {
         return converterListaParaResponse(atendimentoClient.listarOrdenadoPorDataHora());
     }
 
-    private Atendimento criarAtendimento(AtendimentoRequest request) {
-        Paciente paciente = pacienteRepository.findById(request.pacienteId())
-                .orElseThrow(() -> new ObjetoNaoEncontradoException("Paciente nao encontrado"));
-        Medico medico = medicoRepository.findById(request.medicoId())
-                .orElseThrow(() -> new ObjetoNaoEncontradoException("Medico nao encontrado"));
+    private void validarRequest(AtendimentoRequest request) {
+        if (request == null) {
+            throw new IllegalArgumentException("Atendimento nao pode ser nulo");
+        }
+    }
 
-        return HospitalMapper.toEntity(request, paciente, medico);
+    private void validarId(Long id) {
+        if (id == null || id <= 0) {
+            throw new IllegalArgumentException("Id do atendimento deve ser positivo");
+        }
+    }
+
+    private void validarPacienteEMedico(AtendimentoRequest request) {
+        pacienteRepository.findById(request.pacienteId())
+                .orElseThrow(() -> new ObjetoNaoEncontradoException("Paciente nao encontrado"));
+        medicoRepository.findById(request.medicoId())
+                .orElseThrow(() -> new ObjetoNaoEncontradoException("Medico nao encontrado"));
     }
 
     private AtendimentoResponse converterParaResponse(AtendimentoServiceResponse atendimentoServiceResponse) {

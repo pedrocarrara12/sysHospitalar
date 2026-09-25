@@ -1,7 +1,5 @@
 package br.com.pedrocarrarafigueiredo.pedro_carrara_syshospitalar.dto.mapper;
 
-import br.com.pedrocarrarafigueiredo.pedro_carrara_syshospitalar.atendimento.domain.Atendimento;
-import br.com.pedrocarrarafigueiredo.pedro_carrara_syshospitalar.atendimento.dto.request.AtendimentoRequest;
 import br.com.pedrocarrarafigueiredo.pedro_carrara_syshospitalar.enfermeiro.domain.Enfermeiro;
 import br.com.pedrocarrarafigueiredo.pedro_carrara_syshospitalar.enfermeiro.dto.request.EnfermeiroRequest;
 import br.com.pedrocarrarafigueiredo.pedro_carrara_syshospitalar.enfermeiro.dto.response.EnfermeiroResponse;
@@ -11,7 +9,6 @@ import br.com.pedrocarrarafigueiredo.pedro_carrara_syshospitalar.medico.dto.resp
 import br.com.pedrocarrarafigueiredo.pedro_carrara_syshospitalar.paciente.domain.Paciente;
 import br.com.pedrocarrarafigueiredo.pedro_carrara_syshospitalar.paciente.dto.request.PacienteRequest;
 import br.com.pedrocarrarafigueiredo.pedro_carrara_syshospitalar.paciente.dto.response.PacienteResponse;
-import br.com.pedrocarrarafigueiredo.pedro_carrara_syshospitalar.atendimento.dto.response.AtendimentoResponse;
 
 public final class HospitalMapper {
 
@@ -54,16 +51,6 @@ public final class HospitalMapper {
         );
     }
 
-    public static Atendimento toEntity(AtendimentoRequest request, Paciente paciente, Medico medico) {
-        return new Atendimento(
-                request.dataHoraAtendimento(),
-                request.tipoAtendimento(),
-                request.statusAtendimento(),
-                paciente,
-                medico
-        );
-    }
-
     public static PacienteResponse toResponse(Paciente paciente) {
         return new PacienteResponse(
                 paciente.getId(),
@@ -103,16 +90,4 @@ public final class HospitalMapper {
         );
     }
 
-    public static AtendimentoResponse toResponse(Atendimento atendimento) {
-        return new AtendimentoResponse(
-                atendimento.getId(),
-                atendimento.getDataHoraAtendimento(),
-                atendimento.getTipoAtendimento(),
-                atendimento.getStatusAtendimento(),
-                atendimento.getPaciente().getId(),
-                atendimento.getPaciente().getNome(),
-                atendimento.getMedico().getId(),
-                atendimento.getMedico().getNome()
-        );
-    }
 }
