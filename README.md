@@ -114,7 +114,30 @@ Substitua as senhas ilustrativas. O `.env` real e ignorado pelo Git.
 | `ATENDIMENTOS_DB_USERNAME` | Usuario do banco de atendimentos. |
 | `ATENDIMENTOS_DB_PASSWORD` | Senha local do banco de atendimentos. |
 
-Uma aplicacao iniciada pelo Maven nao le `.env` automaticamente. Nesse caso, defina as variaveis no terminal ou na configuracao da IDE.
+### Variaveis recebidas pelas aplicacoes
+
+| Variavel | Ambiente | Responsabilidade |
+| --- | --- | --- |
+| `SPRING_PROFILES_ACTIVE` | `dev` e `prod` | Seleciona o profile Spring de cada processo. O Config Server usa `native`. |
+| `CONFIG_SERVER_URL` | `dev` e `prod` | Endereco usado pelas duas aplicacoes para obter configuracao centralizada. |
+| `ATENDIMENTOS_SERVICE_URL` | `dev` e `prod` | Endereco HTTP usado pela aplicacao principal para acessar o `atendimentos-service`. |
+| `SERVER_PORT` | Config Server e `prod` | Porta do Config Server ou porta interna de cada aplicacao no container. |
+| `DB_URL` | `prod` | URL JDBC entregue individualmente a cada container de aplicacao. |
+| `DB_USERNAME` | `prod` | Usuario do banco pertencente a cada aplicacao. |
+| `DB_PASSWORD` | `prod` | Senha do banco pertencente a cada aplicacao. |
+| `SYSHOSPITALAR_DB_URL` | `dev` | URL JDBC local do PostgreSQL da aplicacao principal. |
+| `SYSHOSPITALAR_DB_USERNAME` | `dev` | Usuario local do banco principal. |
+| `SYSHOSPITALAR_DB_PASSWORD` | `dev` | Senha local do banco principal. |
+| `ATENDIMENTOS_DB_URL` | `dev` | URL JDBC local do PostgreSQL de atendimentos. |
+| `ATENDIMENTOS_DB_USERNAME` | `dev` | Usuario local do banco de atendimentos. |
+| `ATENDIMENTOS_DB_PASSWORD` | `dev` | Senha local do banco de atendimentos. |
+| `JPA_DDL_AUTO` | `dev` e `prod` | Define a estrategia de schema quando o profile permite sobrescrita. A aplicacao principal fixa `create-drop` em `dev`. |
+| `JPA_SHOW_SQL` | `dev` e `prod` | Controla a exibicao das consultas SQL nos logs. |
+| `HIBERNATE_FORMAT_SQL` | `dev` e `prod` | Controla a formatacao do SQL exibido nos logs. |
+
+Uma aplicacao iniciada pelo Maven nao le `.env` automaticamente. Nesse caso, defina as variaveis de `dev` no terminal ou na configuracao da IDE. Em `prod`, o Compose entrega `DB_URL`, `DB_USERNAME`, `DB_PASSWORD` e `SERVER_PORT` separadamente para cada container, sem armazenar credenciais no Config Server.
+
+`DB_DRIVER` nao e necessario porque o Spring Boot identifica o driver PostgreSQL pela URL JDBC e pela dependencia instalada. `H2_CONSOLE_ENABLED` tambem nao se aplica mais, pois o H2 foi removido das duas aplicacoes.
 
 ## Estrutura relevante
 
@@ -333,19 +356,20 @@ Declarar e coordenar os cinco componentes, suas variaveis, redes, volumes, porta
 
 Evita configuracoes duplicadas ou divergentes entre aplicacoes e ambientes. O Config Server entrega propriedades por nome da aplicacao e profile, enquanto segredos continuam vindo de variaveis de ambiente.
 
-## Validacao pendente em ambiente com Docker
+## Validacao concluida da Etapa 3
 
-Os arquivos Docker foram preparados em computador corporativo sem Docker instalado. Antes de considerar a Etapa 3 concluida, executar em casa:
+A configuracao e a execucao da Etapa 3 foram verificadas com Docker disponivel:
 
-1. `docker compose --profile dev config` e `docker compose --profile prod config`.
-2. Construir individualmente as tres imagens.
-3. Executar os testes Testcontainers sem testes ignorados.
-4. Iniciar `dev` e confirmar os dois bancos saudaveis.
-5. Iniciar `prod` e confirmar os cinco componentes saudaveis.
-6. Criar paciente, medico e atendimento pela aplicacao principal.
-7. Executar `down` e `up` e confirmar a persistencia nos volumes.
-8. Conferir logs, profiles e ausencia de conexoes internas por `localhost`.
-9. Revisar as alteracoes antes de criar a tag `etapa-3`.
+1. Os profiles `dev` e `prod` do Compose foram validados com `docker compose config`.
+2. As imagens da aplicacao principal, do `atendimentos-service` e do Config Server foram construidas sem erros.
+3. Os testes das tres aplicacoes passaram; os testes das duas APIs utilizaram PostgreSQL 17 pelo Testcontainers, sem testes ignorados.
+4. O ambiente `dev` foi exercitado com volumes isolados: os dois bancos ficaram disponiveis, as aplicacoes carregaram o profile correto pelo Config Server e o fluxo de atendimento funcionou pela aplicacao principal.
+5. O ambiente `prod` iniciou os cinco componentes com healthchecks, nomes de servico e bancos independentes.
+6. Paciente, medico e atendimento permaneceram disponiveis depois de `docker compose down` e novo `up`, comprovando a persistencia dos volumes.
+7. Os registros e volumes temporarios usados na validacao foram removidos, sem apagar os volumes reais de `prod`.
+8. Os logs revisados nao expuseram senhas, e o `.env` permaneceu fora do versionamento.
+
+A tag `etapa-3` nao e criada automaticamente. Depois de revisar o codigo, a documentacao e os testes, o aluno deve cria-la manualmente quando considerar a entrega finalizada.
 
 ## Uso academico de IA
 

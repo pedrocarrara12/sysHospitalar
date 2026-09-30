@@ -155,6 +155,10 @@ O banco de atendimentos e independente do banco principal. Em `prod`, `JPA_DDL_A
 
 Bean Validation protege as entradas, e o `GlobalExceptionHandler` padroniza respostas `400`, `404` e `409`. Entidades JPA nao sao expostas diretamente como contrato HTTP.
 
-## Validacao pendente
+## Validacao concluida
 
-Os artefatos Docker foram preparados sem Docker disponivel no computador corporativo. A construcao da imagem, o healthcheck, a integracao pelo Compose e a persistencia apos reinicializacao devem ser validados em ambiente com Docker antes da tag `etapa-3`.
+A imagem do servico foi construida e executada nos ambientes `dev` e `prod`. O servico carregou as configuracoes correspondentes pelo Config Server, conectou-se somente ao PostgreSQL de atendimentos e respondeu ao healthcheck e ao OpenAPI.
+
+O fluxo de criacao e consulta de atendimento pela aplicacao principal foi exercitado. O registro permaneceu disponivel depois da recriacao dos containers e foi removido ao final da validacao. O teste de integracao com Testcontainers tambem passou sem ser ignorado.
+
+A tag `etapa-3` deve ser criada manualmente pelo aluno somente depois da revisao final.

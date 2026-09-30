@@ -68,6 +68,8 @@ Na raiz do projeto:
 
 O teste de contexto usa o repositorio `native` e nao depende de Docker.
 
-## Validacao pendente
+## Validacao concluida
 
-A imagem e o healthcheck ainda precisam ser exercitados em um computador com Docker antes da criacao da tag `etapa-3`.
+A imagem e o healthcheck foram exercitados com Docker. O servidor iniciou com o profile `native` e entregou as configuracoes `dev` e `prod` para a aplicacao principal e para o `atendimentos-service`. O teste de contexto tambem passou.
+
+A tag `etapa-3` deve ser criada manualmente pelo aluno somente depois da revisao final.
