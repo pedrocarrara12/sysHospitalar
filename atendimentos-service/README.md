@@ -1,205 +1,112 @@
 # Atendimentos Service
 
-API REST desenvolvida em Java com Spring Boot para gerenciamento independente dos atendimentos do SysHospitalar.
+Aplicacao Spring Boot independente responsavel pelo cadastro e ciclo de vida dos atendimentos do SysHospitalar.
 
-Este servico foi criado na Etapa 2 para separar a responsabilidade de `Atendimentos` da aplicacao principal. Ele executa em processo proprio, possui banco proprio e e consumido pela aplicacao principal via HTTP.
+## Responsabilidade
+
+O servico cadastra, consulta, atualiza, remove e filtra atendimentos. Ele persiste somente:
+
+- data e hora;
+- tipo e status;
+- identificadores do paciente e do medico.
+
+O servico nao acessa o banco da aplicacao principal. A existencia de paciente e medico e validada pela aplicacao principal antes da chamada HTTP.
 
 ```text
-Cliente HTTP ou aplicacao principal -> Controller -> Service -> Repository -> Banco de Dados
+Aplicacao principal -> OpenFeign -> AtendimentoController
+                                      |
+                                      v
+                              AtendimentoService
+                                      |
+                                      v
+                            AtendimentoRepository
+                                      |
+                                      v
+                          PostgreSQL de atendimentos
 ```
 
-## Tecnologias utilizadas
+## Tecnologias
 
-- Java 21
-- Spring Boot 4.1.0
-- Spring Web MVC
-- Spring Data JPA
-- Bean Validation
-- H2 Database
-- H2 Console
+- Java 21 e Spring Boot 4.1.0
+- Spring Web MVC, Spring Data JPA e Bean Validation
+- Spring Cloud Config Client
+- PostgreSQL
 - SpringDoc OpenAPI / Swagger
-- Maven Wrapper
+- Testcontainers PostgreSQL
+- Docker
 
-## Responsabilidade do servico
+## Profiles e configuracao
 
-O `atendimentos-service` e responsavel por:
+| Profile | Comportamento |
+| --- | --- |
+| `dev` | Config Server em `localhost:8888`, datasource recebido por variaveis `ATENDIMENTOS_DB_*` e schema em `update`. |
+| `prod` | Config Server e PostgreSQL acessados pelos nomes dos servicos do Compose. |
+| `test` | Config Server desabilitado e PostgreSQL temporario fornecido pelo Testcontainers. |
 
-- cadastrar atendimentos;
-- consultar atendimentos;
-- atualizar atendimentos;
-- remover atendimentos;
-- filtrar por status;
-- filtrar por tipo;
-- listar atendimentos ordenados por data e hora;
-- persistir os dados de atendimento em banco proprio.
+Variaveis utilizadas na execucao local:
 
-Pacientes, medicos e enfermeiros continuam pertencendo a aplicacao principal. Por isso, este servico armazena apenas os identificadores `pacienteId` e `medicoId`.
+| Variavel | Exemplo dev |
+| --- | --- |
+| `SPRING_PROFILES_ACTIVE` | `dev` |
+| `CONFIG_SERVER_URL` | `http://localhost:8888` |
+| `ATENDIMENTOS_DB_URL` | `jdbc:postgresql://localhost:5433/atendimentos` |
+| `ATENDIMENTOS_DB_USERNAME` | `atendimentos` |
+| `ATENDIMENTOS_DB_PASSWORD` | valor definido no `.env` |
+| `ATENDIMENTOS_SERVER_PORT` | `8081` |
 
-## Etapa 2 - Servico Independente
+Em `prod`, o Compose converte essas configuracoes para `DB_URL`, `DB_USERNAME`, `DB_PASSWORD` e `SERVER_PORT` dentro do container.
 
-Na Etapa 2, a funcionalidade de atendimentos foi extraida para este projeto para demonstrar comunicacao entre duas aplicacoes Spring Boot.
+## Executar localmente
 
-A aplicacao principal continua expondo os endpoints publicos de atendimento para o cliente. Internamente, ela valida se paciente e medico existem e chama este servico com OpenFeign.
+Antes de iniciar o servico:
 
-```text
-Aplicacao principal
-    AtendimentoService
-        |
-        v
-    AtendimentoClient (OpenFeign)
-        |
-        | HTTP
-        v
-atendimentos-service
-    AtendimentoController
-        |
-        v
-    AtendimentoService
-        |
-        v
-    AtendimentoRepository
-        |
-        v
-    Banco H2 de atendimentos
+1. inicie os bancos com `docker compose --profile dev up -d` na raiz;
+2. inicie o Config Server com profile `native`;
+3. defina as variaveis abaixo.
+
+```powershell
+$env:SPRING_PROFILES_ACTIVE="dev"
+$env:CONFIG_SERVER_URL="http://localhost:8888"
+$env:ATENDIMENTOS_DB_URL="jdbc:postgresql://localhost:5433/atendimentos"
+$env:ATENDIMENTOS_DB_USERNAME="atendimentos"
+$env:ATENDIMENTOS_DB_PASSWORD="a-mesma-senha-do-env"
+.\mvnw.cmd spring-boot:run
 ```
 
-## Entidade principal
+O servico responde em `http://localhost:8081` por padrao.
 
-### Atendimento
+## Executar com Compose
 
-Representa um atendimento realizado para um paciente por um medico.
+Na raiz do projeto:
 
-Campos principais:
-
-- `id`
-- `dataHoraAtendimento`
-- `tipoAtendimento`
-- `statusAtendimento`
-- `pacienteId`
-- `medicoId`
-
-## Contrato da API
-
-O cadastro e a atualizacao de atendimento recebem apenas os ids relacionados:
-
-```json
-{
-  "dataHoraAtendimento": "2026-08-30T20:30:00",
-  "tipoAtendimento": "URGENCIA",
-  "statusAtendimento": "ANDAMENTO",
-  "pacienteId": 1,
-  "medicoId": 1
-}
+```powershell
+docker compose --profile prod up --build -d
+docker compose --profile prod ps
 ```
 
-A resposta do servico tambem retorna ids:
+No ambiente completo, o servico usa:
 
-```json
-{
-  "id": 1,
-  "dataHoraAtendimento": "2026-08-30T20:30:00",
-  "tipoAtendimento": "URGENCIA",
-  "statusAtendimento": "ANDAMENTO",
-  "pacienteId": 1,
-  "medicoId": 1
-}
-```
+- Config Server: `http://config-server:8888`;
+- PostgreSQL: `postgres-atendimentos:5432`;
+- volume: `postgres-atendimentos-data`;
+- redes: `atendimentos-network` e `services-network`.
 
-A aplicacao principal e responsavel por enriquecer a resposta publica com `pacienteNome` e `medicoNome`.
-
-## Estrutura do projeto
-
-```text
-atendimentos-service
-|-- src
-|   |-- main
-|   |   |-- java
-|   |   |   |-- br/com/pedrocarrarafigueiredo/pedro_carrara_syshospitalar
-|   |   |   |   |-- atendimento
-|   |   |   |   |   |-- controller
-|   |   |   |   |   |-- domain
-|   |   |   |   |   |-- dto
-|   |   |   |   |   |-- enuns
-|   |   |   |   |   |-- repository
-|   |   |   |   |   |-- service
-|   |   |   |   |-- config
-|   |   |   |   |-- dto
-|   |   |   |   |-- exception
-|   |   |-- resources
-|   |-- test
-|-- pom.xml
-```
-
-## Como executar o servico
-
-### Pre-requisitos
-
-- Java 21 ou superior instalado.
-- Terminal aberto na pasta `atendimentos-service`.
-
-No Windows, use os comandos com `mvnw.cmd`.
-
-### Rodar os testes
+## Testes
 
 ```powershell
 .\mvnw.cmd test
 ```
 
-Esse comando compila o servico e executa os testes automatizados.
-
-### Subir a aplicacao
-
-```powershell
-.\mvnw.cmd spring-boot:run
-```
-
-Por padrao, o servico sobe em:
-
-```text
-http://localhost:8081
-```
-
-A porta esta configurada em `src/main/resources/application.properties`:
-
-```properties
-server.port=8081
-```
+O teste de integracao cria um PostgreSQL 17 temporario, carrega o contexto e persiste um atendimento. Sem Docker, o teste e marcado como ignorado por `disabledWithoutDocker`.
 
 ## Swagger
 
-Com o servico em execucao, a documentacao da API pode ser acessada em:
-
 ```text
 http://localhost:8081/swagger-ui.html
-```
-
-O arquivo OpenAPI em JSON fica disponivel em:
-
-```text
 http://localhost:8081/v3/api-docs
 ```
 
-## H2 Console
-
-O servico utiliza banco H2 em memoria. Com a aplicacao em execucao, acesse:
-
-```text
-http://localhost:8081/h2-console
-```
-
-Dados de conexao:
-
-```text
-JDBC URL: jdbc:h2:mem:atendimentos_service
-User: sa
-Password:
-```
-
-O campo de senha deve ficar vazio.
-
-## Endpoints principais
-
-### Atendimentos
+## Endpoints
 
 ```text
 GET    /atendimentos
@@ -212,9 +119,7 @@ GET    /atendimentos/filtro/tipo?tipo=URGENCIA
 GET    /atendimentos/ordenados-por-data
 ```
 
-## Exemplos de requisicao
-
-### Criar atendimento
+Exemplo de criacao:
 
 ```json
 {
@@ -226,73 +131,30 @@ GET    /atendimentos/ordenados-por-data
 }
 ```
 
-### Filtrar por status
+Valores aceitos para tipo:
 
 ```text
-GET /atendimentos/filtro/status?status=ANDAMENTO
+URGENCIA
+INTERNACAO
+AMBULATORIAL
 ```
 
-### Filtrar por tipo
+Valores aceitos para status:
 
 ```text
-GET /atendimentos/filtro/tipo?tipo=URGENCIA
+ANDAMENTO
+CANCELADO
+CONCLUIDO
 ```
 
-## Validacoes
+## Persistencia
 
-Os DTOs de request utilizam Bean Validation para validar os dados recebidos pela API.
-
-Exemplos de validacoes:
-
-- Data e hora do atendimento sao obrigatorias.
-- Tipo de atendimento e obrigatorio.
-- Status do atendimento e obrigatorio.
-- `pacienteId` deve ser positivo.
-- `medicoId` deve ser positivo.
-
-Quando ocorre erro de validacao, a API retorna `400 Bad Request` com uma resposta padronizada.
+O banco de atendimentos e independente do banco principal. Em `prod`, `JPA_DDL_AUTO=update` e fornecido pelo Compose para a primeira execucao academica. Os dados sobrevivem a `docker compose down` porque o PostgreSQL utiliza volume nomeado; `down -v` remove o volume e apaga os dados.
 
 ## Tratamento de erros
 
-Os erros sao tratados por um `GlobalExceptionHandler`, retornando uma estrutura padronizada:
+Bean Validation protege as entradas, e o `GlobalExceptionHandler` padroniza respostas `400`, `404` e `409`. Entidades JPA nao sao expostas diretamente como contrato HTTP.
 
-```json
-{
-  "localDateTime": "2026-08-30T20:12:07.0835781",
-  "status": 400,
-  "error": "Bad Request",
-  "mensagem": "Mensagem do erro",
-  "path": "/atendimentos"
-}
-```
+## Validacao pendente
 
-Principais status utilizados:
-
-- `200 OK`
-- `201 Created`
-- `204 No Content`
-- `400 Bad Request`
-- `404 Not Found`
-- `409 Conflict`
-
-## Observacoes sobre o banco
-
-O H2 esta configurado em memoria:
-
-```properties
-spring.datasource.url=jdbc:h2:mem:atendimentos_service
-```
-
-Isso significa que os dados sao apagados quando a aplicacao e encerrada.
-
-## Uso pela aplicacao principal
-
-Para validar a comunicacao da Etapa 2:
-
-1. Suba este servico em `http://localhost:8081`.
-2. Suba a aplicacao principal em `http://localhost:8080`.
-3. Cadastre paciente e medico pela aplicacao principal.
-4. Cadastre um atendimento pela aplicacao principal.
-5. Consulte os atendimentos pela aplicacao principal.
-
-Quando este servico esta desligado, a aplicacao principal deve retornar uma resposta controlada com `503 Service Unavailable` nos endpoints de atendimento.
+Os artefatos Docker foram preparados sem Docker disponivel no computador corporativo. A construcao da imagem, o healthcheck, a integracao pelo Compose e a persistencia apos reinicializacao devem ser validados em ambiente com Docker antes da tag `etapa-3`.

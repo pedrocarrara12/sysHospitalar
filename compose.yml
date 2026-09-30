@@ -1,0 +1,130 @@
+services:
+  postgres-principal:
+    image: postgres:17-alpine
+    profiles: ["dev", "prod"]
+    environment:
+      POSTGRES_DB: ${SYSHOSPITALAR_DB_NAME}
+      POSTGRES_USER: ${SYSHOSPITALAR_DB_USERNAME}
+      POSTGRES_PASSWORD: ${SYSHOSPITALAR_DB_PASSWORD}
+    ports:
+      - "127.0.0.1:${SYSHOSPITALAR_DB_PORT}:5432"
+    volumes:
+      - postgres-principal-data:/var/lib/postgresql/data
+    networks:
+      - principal-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+
+  postgres-atendimentos:
+    image: postgres:17-alpine
+    profiles: ["dev", "prod"]
+    environment:
+      POSTGRES_DB: ${ATENDIMENTOS_DB_NAME}
+      POSTGRES_USER: ${ATENDIMENTOS_DB_USERNAME}
+      POSTGRES_PASSWORD: ${ATENDIMENTOS_DB_PASSWORD}
+    ports:
+      - "127.0.0.1:${ATENDIMENTOS_DB_PORT}:5432"
+    volumes:
+      - postgres-atendimentos-data:/var/lib/postgresql/data
+    networks:
+      - atendimentos-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+
+  config-server:
+    build:
+      context: ./config-server
+    profiles: ["prod"]
+    environment:
+      SPRING_PROFILES_ACTIVE: native
+      SERVER_PORT: 8888
+    ports:
+      - "127.0.0.1:${CONFIG_SERVER_PORT}:8888"
+    networks:
+      - services-network
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - wget -q --spider http://localhost:8888/pedro-carrara-syshospitalar/prod || exit 1
+      interval: 5s
+      timeout: 5s
+      retries: 12
+      start_period: 15s
+
+  atendimentos-service:
+    build:
+      context: ./atendimentos-service
+    profiles: ["prod"]
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+      CONFIG_SERVER_URL: http://config-server:8888
+      SERVER_PORT: 8081
+      DB_URL: jdbc:postgresql://postgres-atendimentos:5432/${ATENDIMENTOS_DB_NAME}
+      DB_USERNAME: ${ATENDIMENTOS_DB_USERNAME}
+      DB_PASSWORD: ${ATENDIMENTOS_DB_PASSWORD}
+      JPA_DDL_AUTO: update
+    ports:
+      - "127.0.0.1:${ATENDIMENTOS_SERVER_PORT}:8081"
+    depends_on:
+      config-server:
+        condition: service_healthy
+      postgres-atendimentos:
+        condition: service_healthy
+    networks:
+      - atendimentos-network
+      - services-network
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q --spider http://localhost:8081/v3/api-docs || exit 1"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+      start_period: 20s
+
+  aplicacao-principal:
+    build:
+      context: .
+    profiles: ["prod"]
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+      CONFIG_SERVER_URL: http://config-server:8888
+      ATENDIMENTOS_SERVICE_URL: http://atendimentos-service:8081
+      SERVER_PORT: 8080
+      DB_URL: jdbc:postgresql://postgres-principal:5432/${SYSHOSPITALAR_DB_NAME}
+      DB_USERNAME: ${SYSHOSPITALAR_DB_USERNAME}
+      DB_PASSWORD: ${SYSHOSPITALAR_DB_PASSWORD}
+      JPA_DDL_AUTO: update
+    ports:
+      - "127.0.0.1:${SYSHOSPITALAR_SERVER_PORT}:8080"
+    depends_on:
+      config-server:
+        condition: service_healthy
+      postgres-principal:
+        condition: service_healthy
+      atendimentos-service:
+        condition: service_healthy
+    networks:
+      - principal-network
+      - services-network
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q --spider http://localhost:8080/v3/api-docs || exit 1"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+      start_period: 20s
+
+volumes:
+  postgres-principal-data:
+  postgres-atendimentos-data:
+
+networks:
+  principal-network:
+  atendimentos-network:
+  services-network:

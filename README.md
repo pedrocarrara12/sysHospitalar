@@ -1,481 +1,240 @@
 # SysHospitalar
 
-API REST desenvolvida em Java com Spring Boot para gerenciamento basico de um sistema hospitalar.
+API REST em Java e Spring Boot para gerenciamento de pacientes, medicos, enfermeiros e atendimentos hospitalares.
 
-O projeto permite cadastrar, consultar, atualizar, remover e filtrar dados de pacientes, medicos, enfermeiros e atendimentos. Na Etapa 2, a responsabilidade de `Atendimentos` foi separada para uma aplicacao independente chamada `atendimentos-service`, consumida pela aplicacao principal via HTTP com OpenFeign.
+A aplicacao principal mantem os cadastros locais e expoe a API publica. A responsabilidade de atendimentos pertence ao `atendimentos-service`, consumido por HTTP com OpenFeign. Na Etapa 3, as configuracoes foram externalizadas, o H2 foi substituido por dois PostgreSQL independentes e a execucao integrada foi definida com Spring Cloud Config Server e Docker Compose.
 
-```text
-Cliente HTTP -> Controller -> Service -> Feign Client -> atendimentos-service
-```
+## Tecnologias
 
-Para pacientes, medicos e enfermeiros, a aplicacao principal continua seguindo a arquitetura:
-
-```text
-Cliente HTTP -> Controller -> Service -> Repository -> Banco de Dados
-```
-
-## Tecnologias utilizadas
-
-- Java 21
-- Spring Boot 4.1.0
-- Spring Web MVC
-- Spring Data JPA
-- Spring Cloud OpenFeign
-- Bean Validation
-- H2 Database
-- H2 Console
+- Java 21 e Spring Boot 4.1.0
+- Spring Web MVC, Spring Data JPA e Bean Validation
+- Spring Cloud OpenFeign e Spring Cloud Config
+- PostgreSQL 17
 - SpringDoc OpenAPI / Swagger
+- Dockerfiles multi-stage e Docker Compose
+- Testcontainers com PostgreSQL para testes de integracao
 - Maven Wrapper
 
-## Funcionalidades
-
-- Cadastro de pacientes.
-- Cadastro de medicos.
-- Cadastro de enfermeiros.
-- Cadastro de atendimentos por meio do `atendimentos-service`.
-- Listagem geral dos recursos.
-- Busca por identificador.
-- Atualizacao de registros.
-- Remocao de registros.
-- Consultas personalizadas com Spring Data JPA.
-- Consultas remotas de atendimentos por status, tipo e ordenacao por data.
-- Validacao dos dados recebidos pela API.
-- Tratamento padronizado de erros.
-- Tratamento controlado de indisponibilidade do servico de atendimentos.
-- Documentacao da API via Swagger.
-
-## Etapa 1 - Organizacao Arquitetural
-
-Esta etapa teve como objetivo revisar a organizacao interna da aplicacao antes de qualquer evolucao para microsservicos. O projeto permaneceu como uma unica aplicacao Spring Boot, mas suas responsabilidades foram separadas por dominio.
-
-A arquitetura base esperada foi:
-
-```text
-Cliente HTTP -> Controller -> Service -> Repository -> Banco de Dados
-```
-
-### Modulos identificados
-
-#### Pacientes
-
-Responsavel pelo cadastro, consulta, atualizacao, remocao, filtros e manutencao dos dados pessoais dos pacientes atendidos pelo sistema.
-
-#### Equipe Clinica
-
-Responsavel pelo cadastro e manutencao dos profissionais de saude. No codigo, essa responsabilidade foi separada em dois pacotes de dominio:
-
-- `medico`: dados de medicos, incluindo especialidade, CRM e status ativo.
-- `enfermeiro`: dados de enfermeiros, incluindo setor, COREN e status ativo.
-
-#### Atendimentos
-
-Responsavel pelo registro dos atendimentos realizados, incluindo tipo, status, data e hora, alem do vinculo com paciente e medico.
-
-### Dependencias entre modulos
-
-Um exemplo de dependencia existente e:
-
-```text
-Atendimentos -> Pacientes / Medicos
-```
-
-Um atendimento precisa consultar um paciente e um medico existentes antes de ser cadastrado ou atualizado. Isso mostra que o modulo de atendimentos depende das informacoes mantidas pelos modulos de pacientes e equipe clinica.
-
-### Candidato a servico independente
-
-O modulo de `Atendimentos` foi escolhido como candidato a servico independente.
-
-Responsabilidade:
-
-- Registrar e manter o ciclo de vida dos atendimentos hospitalares.
-- Controlar tipo, status, data e hora do atendimento.
-- Relacionar o atendimento aos identificadores de paciente e medico.
-
-Motivo para separacao futura:
-
-- Possui fluxo operacional proprio.
-- Depende de outros modulos por identificadores claros.
-- Pode evoluir com regras especificas, como historico de atendimento, agenda, triagem ou integracao com outros sistemas.
-
-## Etapa 2 - Servico Independente de Atendimentos
-
-Na Etapa 2, a responsabilidade de `Atendimentos` foi extraida da aplicacao principal para o projeto `atendimentos-service`.
-
-### Servico independente
-
-O `atendimentos-service` e uma aplicacao Spring Boot separada, localizada na pasta:
-
-```text
-atendimentos-service
-```
-
-Ele e responsavel por:
-
-- cadastrar atendimentos;
-- consultar atendimentos;
-- atualizar atendimentos;
-- remover atendimentos;
-- filtrar atendimentos por status;
-- filtrar atendimentos por tipo;
-- listar atendimentos ordenados por data e hora;
-- persistir os dados de atendimento em banco proprio.
-
-### Comunicacao entre aplicacoes
-
-A aplicacao principal continua expondo os endpoints publicos de atendimento, mas nao persiste mais atendimentos diretamente. Ela valida os dados locais de paciente e medico e chama o `atendimentos-service` por HTTP usando OpenFeign.
+## Arquitetura
 
 ```text
 Cliente HTTP
     |
     v
-Aplicacao principal
-    AtendimentoController
-        |
-        v
-    AtendimentoService
-        |
-        | valida paciente e medico no banco local
-        v
-    AtendimentoClient (OpenFeign)
-        |
-        | HTTP
-        v
-atendimentos-service
-    AtendimentoController
-        |
-        v
-    AtendimentoService
-        |
-        v
-    AtendimentoRepository
-        |
-        v
-    Banco H2 de atendimentos
+Aplicacao principal --------------------> PostgreSQL principal
+    |
+    | HTTP / OpenFeign
+    v
+atendimentos-service -------------------> PostgreSQL de atendimentos
+
+Config Server
+    |-------------------------------> Aplicacao principal
+    `-------------------------------> atendimentos-service
 ```
 
-### Configuracao da URL do servico
+Cada aplicacao acessa somente o banco pelo qual e responsavel:
 
-O endereco do `atendimentos-service` fica externalizado em `src/main/resources/application.properties`:
+- aplicacao principal: pacientes, medicos e enfermeiros;
+- `atendimentos-service`: atendimentos, referenciando paciente e medico apenas por identificador.
 
-```properties
-services.atendimento.url=${ATENDIMENTOS_SERVICE_URL:http://localhost:8081}
-```
-
-Por padrao, a aplicacao principal chama:
+O fluxo interno permanece organizado como:
 
 ```text
-http://localhost:8081
+Cliente HTTP -> Controller -> Service -> Repository -> Banco de Dados
 ```
 
-Em outro ambiente, a URL pode ser alterada com a variavel de ambiente `ATENDIMENTOS_SERVICE_URL`, sem recompilar o projeto.
-
-### Contrato publico
-
-Os endpoints publicos de atendimentos permanecem disponiveis na aplicacao principal:
+Para atendimentos, a aplicacao principal atua como orquestradora:
 
 ```text
-GET    /atendimentos
-GET    /atendimentos/{id}
-POST   /atendimentos
-PUT    /atendimentos/{id}
-DELETE /atendimentos/{id}
-GET    /atendimentos/filtro/status?status=ANDAMENTO
-GET    /atendimentos/filtro/tipo?tipo=URGENCIA
-GET    /atendimentos/ordenados-por-data
+Cliente -> Controller -> Service -> Feign Client -> atendimentos-service
 ```
 
-O `atendimentos-service` trabalha com `pacienteId` e `medicoId`. A aplicacao principal enriquece a resposta publica com `pacienteNome` e `medicoNome`, consultando seus dados locais.
+## Evolucao por etapas
 
-### Persistencia
+### Etapa 1 - organizacao arquitetural
 
-Somente o `atendimentos-service` persiste atendimentos.
+O monolito foi organizado por dominio, com controllers, services, repositories, DTOs, validacao e tratamento centralizado de excecoes. Os modulos identificados foram Pacientes, Equipe Clinica e Atendimentos. A dependencia principal e `Atendimentos -> Pacientes / Medicos`.
 
-A aplicacao principal mantem persistencia local apenas para:
+### Etapa 2 - servico independente
 
-- pacientes;
-- medicos;
-- enfermeiros.
+Atendimentos foi separado como uma aplicacao Spring Boot independente. A aplicacao principal continua expondo o contrato publico e valida a existencia local do paciente e do medico antes de chamar o servico. Falhas de comunicacao sao convertidas em `503 Service Unavailable`, sem expor detalhes internos.
 
-### Indisponibilidade do servico
+### Etapa 3 - configuracao e execucao
 
-Quando o `atendimentos-service` esta indisponivel, a aplicacao principal converte a falha de comunicacao em uma resposta controlada:
+A solucao passou a utilizar:
 
-```text
-503 Service Unavailable
+- profiles Spring `dev`, `prod`, `test` e `native`;
+- configuracao centralizada por Config Server;
+- dois bancos PostgreSQL com credenciais e volumes independentes;
+- variaveis de ambiente para URLs, portas e credenciais;
+- um Dockerfile por aplicacao executavel;
+- um `compose.yml` com profiles `dev` e `prod`, redes, volumes e healthchecks.
+
+## Profiles
+
+| Profile | Uso |
+| --- | --- |
+| Spring `dev` | Aplicacoes executadas localmente; Config Server e bancos acessados por `localhost`. |
+| Spring `prod` | Aplicacoes em containers; comunicacao por nomes DNS do Compose. |
+| Spring `test` | Testes com PostgreSQL criado pelo Testcontainers e sem Config Server. |
+| Spring `native` | Config Server lendo o repositorio de configuracoes do classpath. |
+| Compose `dev` | Inicia somente os dois bancos PostgreSQL. |
+| Compose `prod` | Inicia bancos, Config Server e as duas aplicacoes. |
+
+### Gerenciamento do schema
+
+- Aplicacao principal em `dev`: `create-drop`; as tabelas sao recriadas e `data-dev.sql` insere um paciente, um medico e um enfermeiro.
+- `atendimentos-service` em `dev`: `update`.
+- Aplicacoes em `prod`: o Compose fornece `JPA_DDL_AUTO=update` para permitir a primeira execucao academica em bancos vazios.
+- Os arquivos de configuracao de `prod` usam `validate` como padrao quando a variavel nao e fornecida.
+
+O `create-drop` da aplicacao principal torna os dados locais de desenvolvimento descartaveis. Os dados de `prod` permanecem nos volumes quando os containers sao reiniciados ou removidos sem `-v`.
+
+## Variaveis de ambiente
+
+O arquivo `.env.example` documenta somente valores utilizados pelo Compose. Copie-o antes da primeira execucao:
+
+```powershell
+Copy-Item .env.example .env
 ```
 
-Exemplo de resposta:
+Substitua as senhas ilustrativas. O `.env` real e ignorado pelo Git.
 
-```json
-{
-  "localDateTime": "2026-09-25T14:00:00",
-  "status": 503,
-  "error": "Service Unavailable",
-  "mensagem": "Servico de atendimentos temporariamente indisponivel",
-  "path": "/atendimentos"
-}
-```
+| Variavel | Responsabilidade |
+| --- | --- |
+| `CONFIG_SERVER_PORT` | Porta publicada do Config Server. |
+| `SYSHOSPITALAR_SERVER_PORT` | Porta publicada da aplicacao principal. |
+| `ATENDIMENTOS_SERVER_PORT` | Porta publicada do servico de atendimentos. |
+| `SYSHOSPITALAR_DB_PORT` | Porta local do PostgreSQL principal. |
+| `ATENDIMENTOS_DB_PORT` | Porta local do PostgreSQL de atendimentos. |
+| `SYSHOSPITALAR_DB_NAME` | Nome do banco principal. |
+| `SYSHOSPITALAR_DB_USERNAME` | Usuario do banco principal. |
+| `SYSHOSPITALAR_DB_PASSWORD` | Senha local do banco principal. |
+| `ATENDIMENTOS_DB_NAME` | Nome do banco de atendimentos. |
+| `ATENDIMENTOS_DB_USERNAME` | Usuario do banco de atendimentos. |
+| `ATENDIMENTOS_DB_PASSWORD` | Senha local do banco de atendimentos. |
 
-Assim, detalhes internos do Feign, endereco remoto ou stack trace nao sao expostos ao cliente.
+Uma aplicacao iniciada pelo Maven nao le `.env` automaticamente. Nesse caso, defina as variaveis no terminal ou na configuracao da IDE.
 
-### Reflexao arquitetural
-
-#### Qual funcionalidade foi separada da aplicacao principal?
-
-A funcionalidade de gerenciamento de atendimentos foi separada para o `atendimentos-service`.
-
-#### Por que ela foi escolhida?
-
-Porque `Atendimentos` possui um ciclo operacional proprio e ja dependia de pacientes e medicos por identificadores claros. Isso facilita a separacao sem transformar todo o sistema em microsservicos.
-
-#### O que ficou mais complexo depois da separacao?
-
-A comunicacao ficou mais complexa porque a aplicacao principal agora depende de uma chamada HTTP. Tambem passou a ser necessario tratar indisponibilidade, configurar URL externa e validar o contrato entre as duas aplicacoes.
-
-#### O que acontece com a funcionalidade principal quando o novo servico fica indisponivel?
-
-Os endpoints de atendimento da aplicacao principal retornam uma resposta controlada com status `503 Service Unavailable`. As funcionalidades de pacientes, medicos e enfermeiros continuam funcionando na aplicacao principal.
-
-#### A funcionalidade realmente precisa permanecer independente ou poderia continuar na aplicacao principal?
-
-Para um sistema pequeno, ela poderia continuar na aplicacao principal. A separacao foi feita como exercicio arquitetural da Etapa 2 e faz sentido como preparacao para cenarios em que atendimentos tenham regras, carga ou evolucao propria.
-
-## Entidades principais
-
-### Paciente
-
-Representa o paciente atendido pelo sistema.
-
-Campos principais:
-
-- `id`
-- `nome`
-- `cpf`
-- `dataNascimento`
-- `sexo`
-- `telefone`
-- `email`
-- `ativo`
-
-### Medico
-
-Representa um prestador do tipo medico.
-
-Campos principais:
-
-- `id`
-- `nome`
-- `idade`
-- `cpf`
-- `email`
-- `ativo`
-- `crm`
-- `especialidade`
-
-### Enfermeiro
-
-Representa um prestador do tipo enfermeiro.
-
-Campos principais:
-
-- `id`
-- `nome`
-- `idade`
-- `cpf`
-- `email`
-- `ativo`
-- `coren`
-- `setor`
-
-### Atendimento
-
-Representa um atendimento realizado para um paciente por um medico.
-
-Na aplicacao principal, atendimento e exposto por DTOs e consumido do `atendimentos-service`. A entidade JPA de atendimento pertence ao servico independente.
-
-Campos principais:
-
-- `id`
-- `dataHoraAtendimento`
-- `tipoAtendimento`
-- `statusAtendimento`
-- `pacienteId`
-- `pacienteNome`
-- `medicoId`
-- `medicoNome`
-
-## Relacionamentos
-
-O atendimento usa os identificadores de paciente e medico:
-
-- muitos atendimentos podem pertencer a um paciente;
-- muitos atendimentos podem estar associados a um medico.
-
-O `atendimentos-service` armazena apenas `pacienteId` e `medicoId`. A aplicacao principal valida se esses identificadores existem antes de criar ou atualizar um atendimento.
-
-Na API, o cadastro de atendimento recebe:
-
-```json
-{
-  "dataHoraAtendimento": "2026-08-30T20:30:00",
-  "tipoAtendimento": "URGENCIA",
-  "statusAtendimento": "ANDAMENTO",
-  "pacienteId": 1,
-  "medicoId": 1
-}
-```
-
-## Estrutura do projeto
+## Estrutura relevante
 
 ```text
 sysHospitalar
-|-- src
-|   |-- main
-|   |   |-- java
-|   |   |   |-- br/com/pedrocarrarafigueiredo/pedro_carrara_syshospitalar
-|   |   |   |   |-- atendimento
-|   |   |   |   |   |-- client
-|   |   |   |   |   |-- controller
-|   |   |   |   |   |-- dto
-|   |   |   |   |   |-- enuns
-|   |   |   |   |   |-- service
-|   |   |   |   |-- config
-|   |   |   |   |-- domain
-|   |   |   |   |-- dto
-|   |   |   |   |-- enfermeiro
-|   |   |   |   |-- exception
-|   |   |   |   |-- medico
-|   |   |   |   |-- paciente
-|   |   |-- resources
-|-- atendimentos-service
-|   |-- src
-|   |-- pom.xml
-|-- docs
-|-- pom.xml
+|-- src/                         # aplicacao principal
+|-- atendimentos-service/        # servico independente
+|-- config-server/               # configuracao centralizada
+|-- docs/etapas/                 # requisitos e guias academicos
+|-- compose.yml                  # orquestracao dev/prod
+|-- .env.example                 # contrato das variaveis locais
+`-- Dockerfile                   # imagem da aplicacao principal
 ```
 
-Na aplicacao principal, o pacote `atendimento` contem o controller publico, o service de orquestracao, DTOs, enums e o `AtendimentoClient` Feign. A persistencia de atendimentos fica no projeto `atendimentos-service`.
-
-## Como executar o projeto
+## Executar o ambiente dev
 
 ### Pre-requisitos
 
-- Java 21 ou superior instalado.
-- Terminal aberto na pasta raiz do projeto.
-- Dois terminais para executar a aplicacao principal e o `atendimentos-service` ao mesmo tempo.
+- Java 21;
+- Docker Desktop ou Docker Engine com Compose;
+- portas `5432`, `5433`, `8888`, `8080` e `8081` livres.
 
-No Windows, use os comandos com `mvnw.cmd`.
-
-### Rodar os testes da aplicacao principal
-
-Na raiz do projeto:
+### 1. Iniciar os bancos
 
 ```powershell
-.\mvnw.cmd test
+docker compose --profile dev up -d
+docker compose --profile dev ps
 ```
 
-### Rodar os testes do atendimentos-service
+Somente `postgres-principal` e `postgres-atendimentos` devem iniciar.
 
-Na pasta `atendimentos-service`:
+### 2. Iniciar o Config Server
 
 ```powershell
-cd atendimentos-service
-.\mvnw.cmd test
+$env:SPRING_PROFILES_ACTIVE="native"
+$env:SERVER_PORT="8888"
+.\mvnw.cmd -f config-server\pom.xml spring-boot:run
 ```
 
-### Subir o atendimentos-service
-
-No primeiro terminal:
+Validacao:
 
 ```powershell
-cd atendimentos-service
+Invoke-RestMethod http://localhost:8888/pedro-carrara-syshospitalar/dev
+Invoke-RestMethod http://localhost:8888/atendimentos-service/dev
+```
+
+### 3. Iniciar o servico de atendimentos
+
+Em outro terminal:
+
+```powershell
+$env:SPRING_PROFILES_ACTIVE="dev"
+$env:CONFIG_SERVER_URL="http://localhost:8888"
+$env:ATENDIMENTOS_DB_URL="jdbc:postgresql://localhost:5433/atendimentos"
+$env:ATENDIMENTOS_DB_USERNAME="atendimentos"
+$env:ATENDIMENTOS_DB_PASSWORD="a-mesma-senha-do-env"
+Set-Location atendimentos-service
 .\mvnw.cmd spring-boot:run
 ```
 
-Por padrao, o servico sobe em:
+### 4. Iniciar a aplicacao principal
 
-```text
-http://localhost:8081
-```
-
-### Subir a aplicacao principal
-
-No segundo terminal, na raiz do projeto:
+Em outro terminal, na raiz:
 
 ```powershell
-.\mvnw.cmd spring-boot:run
-```
-
-Por padrao, a aplicacao principal sobe em:
-
-```text
-http://localhost:8080
-```
-
-Se o `atendimentos-service` estiver em outra URL, configure a variavel de ambiente antes de subir a aplicacao principal:
-
-```powershell
+$env:SPRING_PROFILES_ACTIVE="dev"
+$env:CONFIG_SERVER_URL="http://localhost:8888"
 $env:ATENDIMENTOS_SERVICE_URL="http://localhost:8081"
+$env:SYSHOSPITALAR_DB_URL="jdbc:postgresql://localhost:5432/syshospitalar"
+$env:SYSHOSPITALAR_DB_USERNAME="syshospitalar"
+$env:SYSHOSPITALAR_DB_PASSWORD="a-mesma-senha-do-env"
 .\mvnw.cmd spring-boot:run
 ```
 
-## Swagger
+Para encerrar somente os bancos, depois de parar as aplicacoes locais:
 
-Com as aplicacoes em execucao, a documentacao da aplicacao principal pode ser acessada em:
-
-```text
-http://localhost:8080/swagger-ui.html
+```powershell
+docker compose --profile dev down
 ```
 
-A documentacao do `atendimentos-service` pode ser acessada em:
+## Executar o ambiente prod
 
-```text
-http://localhost:8081/swagger-ui.html
+O profile `prod` e uma simulacao academica local de producao.
+
+```powershell
+docker compose --profile prod config
+docker compose --profile prod up --build -d
+docker compose --profile prod ps
 ```
 
-O arquivo OpenAPI em JSON da aplicacao principal fica disponivel em:
+Devem iniciar cinco componentes: dois bancos, Config Server, `atendimentos-service` e aplicacao principal. Dentro dos containers, as conexoes utilizam nomes como `config-server`, `atendimentos-service`, `postgres-principal` e `postgres-atendimentos`.
 
-```text
-http://localhost:8080/v3/api-docs
+Parar sem apagar os dados:
+
+```powershell
+docker compose --profile prod down
 ```
 
-O arquivo OpenAPI em JSON do `atendimentos-service` fica disponivel em:
+Apagar containers e volumes, somente quando os dados puderem ser descartados:
 
-```text
-http://localhost:8081/v3/api-docs
+```powershell
+docker compose --profile prod down -v
 ```
 
-## H2 Console
+## Testes
 
-A aplicacao principal utiliza banco H2 em memoria para pacientes, medicos e enfermeiros:
+Os testes das duas aplicacoes usam PostgreSQL 17 por Testcontainers. Quando Docker nao esta disponivel, eles sao marcados como ignorados; com Docker ativo, criam bancos temporarios, carregam os contextos e exercitam persistencia real.
 
-```text
-http://localhost:8080/h2-console
+```powershell
+.\mvnw.cmd test
+.\mvnw.cmd -f atendimentos-service\pom.xml test
+.\mvnw.cmd -f config-server\pom.xml test
 ```
 
-Dados de conexao:
+## Swagger e OpenAPI
 
-```text
-JDBC URL: jdbc:h2:mem:syshospitalar
-User: sa
-Password:
-```
-
-O `atendimentos-service` utiliza outro banco H2 em memoria para atendimentos:
-
-```text
-http://localhost:8081/h2-console
-```
-
-Dados de conexao:
-
-```text
-JDBC URL: jdbc:h2:mem:atendimentos_service
-User: sa
-Password:
-```
-
-O campo de senha deve ficar vazio.
+| Aplicacao | Swagger | OpenAPI JSON |
+| --- | --- | --- |
+| Principal | `http://localhost:8080/swagger-ui.html` | `http://localhost:8080/v3/api-docs` |
+| Atendimentos | `http://localhost:8081/swagger-ui.html` | `http://localhost:8081/v3/api-docs` |
 
 ## Endpoints principais
 
@@ -517,8 +276,6 @@ GET    /enfermeiros/ativos
 
 ### Atendimentos
 
-Os endpoints abaixo continuam expostos pela aplicacao principal, mas sao processados pelo `atendimentos-service`:
-
 ```text
 GET    /atendimentos
 GET    /atendimentos/{id}
@@ -530,53 +287,9 @@ GET    /atendimentos/filtro/tipo?tipo=URGENCIA
 GET    /atendimentos/ordenados-por-data
 ```
 
-## Exemplos de requisicao
+## Exemplo de fluxo funcional
 
-### Criar paciente
-
-```json
-{
-  "nome": "Maria Silva",
-  "cpf": "12345678901",
-  "dataNascimento": "1990-05-10",
-  "sexo": "F",
-  "telefone": "65999990000",
-  "email": "maria@email.com",
-  "ativo": true
-}
-```
-
-### Criar medico
-
-```json
-{
-  "nome": "Joao Medico",
-  "idade": 40,
-  "cpf": "10987654321",
-  "email": "joao@email.com",
-  "ativo": true,
-  "crm": "CRM123",
-  "especialidade": "Cardiologia"
-}
-```
-
-### Criar enfermeiro
-
-```json
-{
-  "nome": "Ana Enfermeira",
-  "idade": 32,
-  "cpf": "11122233344",
-  "email": "ana@email.com",
-  "ativo": true,
-  "coren": "COREN123",
-  "setor": "UTI"
-}
-```
-
-### Criar atendimento
-
-Antes de criar um atendimento pela aplicacao principal, cadastre pelo menos um paciente e um medico. O `atendimentos-service` tambem deve estar em execucao.
+O profile `dev` cria paciente e medico com identificador `1`. Com as duas aplicacoes em execucao, um atendimento pode ser criado pela aplicacao principal:
 
 ```json
 {
@@ -588,77 +301,52 @@ Antes de criar um atendimento pela aplicacao principal, cadastre pelo menos um p
 }
 ```
 
-## Validacoes
+## Validacao e tratamento de erros
 
-Os DTOs de request utilizam Bean Validation para validar os dados recebidos pela API.
+Os DTOs de entrada utilizam Bean Validation. Entre as regras existentes estao CPF com 11 numeros, e-mail valido, idade minima de 18 anos para prestadores, data de nascimento nao futura e identificadores relacionados positivos.
 
-Exemplos de validacoes:
+As excecoes sao tratadas centralmente. Os principais status sao `200`, `201`, `204`, `400`, `404`, `409` e `503`.
 
-- Campos obrigatorios com `@NotBlank` e `@NotNull`.
-- CPF com exatamente 11 numeros.
-- E-mail em formato valido.
-- Idade minima de 18 anos para prestadores.
-- Data de nascimento nao pode ser futura.
-- Ids relacionados devem ser positivos.
-- Paciente e medico precisam existir na aplicacao principal antes do cadastro ou atualizacao de atendimento.
+## Reflexao arquitetural da Etapa 3
 
-Quando ocorre erro de validacao, a API retorna `400 Bad Request` com uma resposta padronizada.
+### 1. Quais configuracoes podem variar entre ambientes?
 
-## Tratamento de erros
+Portas, URLs do Config Server e do servico, URLs JDBC, credenciais, profile ativo, estrategia de schema e exibicao ou formatacao de SQL.
 
-Os erros sao tratados por um `GlobalExceptionHandler`, retornando uma estrutura padronizada:
+### 2. Quais configuracoes foram externalizadas?
 
-```json
-{
-  "localDateTime": "2026-08-30T20:12:07.0835781",
-  "status": 400,
-  "error": "Bad Request",
-  "mensagem": "Mensagem do erro",
-  "path": "/pacientes"
-}
-```
+Todas as anteriores foram movidas para variaveis de ambiente, arquivos de profile, repositorio do Config Server ou definicoes do Compose. Nenhuma credencial foi fixada no codigo Java.
 
-Principais status utilizados:
+### 3. Por que um servico nao deve acessar diretamente o banco de outro?
 
-- `200 OK`
-- `201 Created`
-- `204 No Content`
-- `400 Bad Request`
-- `404 Not Found`
-- `409 Conflict`
-- `503 Service Unavailable`
+O acesso direto cria acoplamento ao schema interno, contorna regras de negocio e impede que o servico dono dos dados evolua de forma independente. A integracao deve ocorrer pelo contrato HTTP.
 
-## Roteiro de validacao da Etapa 2
+### 4. Qual problema o Docker resolve no projeto?
 
-1. Subir o `atendimentos-service` em `http://localhost:8081`.
-2. Subir a aplicacao principal em `http://localhost:8080`.
-3. Criar um paciente pela aplicacao principal.
-4. Criar um medico pela aplicacao principal.
-5. Criar um atendimento pela aplicacao principal usando `pacienteId` e `medicoId`.
-6. Consultar `/atendimentos` pela aplicacao principal e confirmar a resposta com `pacienteNome` e `medicoNome`.
-7. Parar o `atendimentos-service`.
-8. Chamar `/atendimentos` pela aplicacao principal e confirmar o retorno `503 Service Unavailable`.
-9. Executar `.\mvnw.cmd test` na aplicacao principal.
-10. Executar `.\mvnw.cmd test` dentro de `atendimentos-service`.
+Padroniza sistema operacional, Java, dependencias e processo de inicializacao, reduzindo diferencas entre computadores e tornando a execucao reproduzivel.
 
-## Observacoes sobre os bancos
+### 5. Qual e a funcao do Docker Compose?
 
-Os bancos H2 estao configurados em memoria.
+Declarar e coordenar os cinco componentes, suas variaveis, redes, volumes, portas, healthchecks e ordem de inicializacao com um unico comando.
 
-Aplicacao principal:
+### 6. Qual problema uma configuracao centralizada procura resolver?
 
-```properties
-spring.datasource.url=jdbc:h2:mem:syshospitalar
-```
+Evita configuracoes duplicadas ou divergentes entre aplicacoes e ambientes. O Config Server entrega propriedades por nome da aplicacao e profile, enquanto segredos continuam vindo de variaveis de ambiente.
 
-Servico de atendimentos:
+## Validacao pendente em ambiente com Docker
 
-```properties
-spring.datasource.url=jdbc:h2:mem:atendimentos_service
-```
+Os arquivos Docker foram preparados em computador corporativo sem Docker instalado. Antes de considerar a Etapa 3 concluida, executar em casa:
 
-Isso significa que os dados sao apagados quando cada aplicacao e encerrada.
+1. `docker compose --profile dev config` e `docker compose --profile prod config`.
+2. Construir individualmente as tres imagens.
+3. Executar os testes Testcontainers sem testes ignorados.
+4. Iniciar `dev` e confirmar os dois bancos saudaveis.
+5. Iniciar `prod` e confirmar os cinco componentes saudaveis.
+6. Criar paciente, medico e atendimento pela aplicacao principal.
+7. Executar `down` e `up` e confirmar a persistencia nos volumes.
+8. Conferir logs, profiles e ausencia de conexoes internas por `localhost`.
+9. Revisar as alteracoes antes de criar a tag `etapa-3`.
 
-## Marco da Etapa 2
+## Uso academico de IA
 
-A tag `etapa-2` deve ser criada somente depois da implementacao, dos testes de comunicacao e da revisao final.
+Este projeto utilizou IA como apoio a revisao, planejamento, implementacao e documentacao. Todo resultado deve ser revisado pelo aluno e conferido contra o codigo, os testes e o enunciado antes da entrega.
