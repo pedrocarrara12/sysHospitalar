@@ -2,7 +2,7 @@
 
 API REST em Java e Spring Boot para gerenciamento de pacientes, medicos, enfermeiros e atendimentos hospitalares.
 
-A aplicacao principal mantem os cadastros locais e expoe a API publica. A responsabilidade de atendimentos pertence ao `atendimentos-service`, consumido por HTTP com OpenFeign. Na Etapa 3, as configuracoes foram externalizadas, o H2 foi substituido por dois PostgreSQL independentes e a execucao integrada foi definida com Spring Cloud Config Server e Docker Compose.
+A aplicacao principal mantem os cadastros locais e expoe a API publica. A responsabilidade de atendimentos pertence ao `atendimentos-service`, consumido por HTTP com OpenFeign. Na Etapa 4, a criacao de um atendimento publica uma notificacao assincrona no RabbitMQ e a aplicacao principal tambem oferece importacao de pacientes por CSV com Spring Batch.
 
 ## Tecnologias
 
@@ -10,9 +10,11 @@ A aplicacao principal mantem os cadastros locais e expoe a API publica. A respon
 - Spring Web MVC, Spring Data JPA e Bean Validation
 - Spring Cloud OpenFeign e Spring Cloud Config
 - PostgreSQL 17
+- RabbitMQ 4, Spring AMQP e Gmail SMTP
+- Spring Batch 6
 - SpringDoc OpenAPI / Swagger
 - Dockerfiles multi-stage e Docker Compose
-- Testcontainers com PostgreSQL para testes de integracao
+- Testcontainers com PostgreSQL e RabbitMQ para testes de integracao
 - Maven Wrapper
 
 ## Arquitetura
@@ -26,6 +28,13 @@ Aplicacao principal --------------------> PostgreSQL principal
     | HTTP / OpenFeign
     v
 atendimentos-service -------------------> PostgreSQL de atendimentos
+    ^
+    |
+    +-- confirmacao -- Aplicacao principal -- evento --> RabbitMQ
+                                                   |
+                                                   `--> consumidor --> Gmail SMTP
+
+CSV --> Spring Batch na aplicacao principal --> PostgreSQL principal
 
 Config Server
     |-------------------------------> Aplicacao principal
@@ -70,6 +79,17 @@ A solucao passou a utilizar:
 - um Dockerfile por aplicacao executavel;
 - um `compose.yml` com profiles `dev` e `prod`, redes, volumes e healthchecks.
 
+### Etapa 4 - assincrono e lote
+
+Depois que o `atendimentos-service` confirma a persistencia, a aplicacao principal publica um `AtendimentoCriadoEvento`. O consumidor envia uma confirmacao simples ao e-mail do paciente, sem dados clinicos. Falhas SMTP recebem tres tentativas e, depois disso, seguem para uma DLQ.
+
+A importacao Batch recebe CSV de pacientes, normaliza e valida cada linha e grava registros validos no PostgreSQL principal em chunks de 10. O inicio e a consulta da execucao sao expostos por endpoints separados.
+
+Documentação aprofundada:
+
+- [Guia didático da implementação da Etapa 4](docs/etapas/etapa-4-guia-implementacao.md);
+- [Guia completo de testes da Etapa 4](docs/etapas/etapa-4-guia-testes.md).
+
 ## Profiles
 
 | Profile | Uso |
@@ -78,8 +98,8 @@ A solucao passou a utilizar:
 | Spring `prod` | Aplicacoes em containers; comunicacao por nomes DNS do Compose. |
 | Spring `test` | Testes com PostgreSQL criado pelo Testcontainers e sem Config Server. |
 | Spring `native` | Config Server lendo o repositorio de configuracoes do classpath. |
-| Compose `dev` | Inicia somente os dois bancos PostgreSQL. |
-| Compose `prod` | Inicia bancos, Config Server e as duas aplicacoes. |
+| Compose `dev` | Inicia os dois bancos PostgreSQL e o RabbitMQ. |
+| Compose `prod` | Inicia bancos, RabbitMQ, Config Server e as duas aplicacoes. |
 
 ### Gerenciamento do schema
 
@@ -113,6 +133,13 @@ Substitua as senhas ilustrativas. O `.env` real e ignorado pelo Git.
 | `ATENDIMENTOS_DB_NAME` | Nome do banco de atendimentos. |
 | `ATENDIMENTOS_DB_USERNAME` | Usuario do banco de atendimentos. |
 | `ATENDIMENTOS_DB_PASSWORD` | Senha local do banco de atendimentos. |
+| `RABBITMQ_PORT` / `RABBITMQ_MANAGEMENT_PORT` | Portas locais do broker e do painel. |
+| `RABBITMQ_USERNAME` / `RABBITMQ_PASSWORD` | Credenciais locais do RabbitMQ. |
+| `MAIL_USERNAME` / `MAIL_PASSWORD` | Conta Gmail e senha de aplicativo. |
+| `MAIL_FROM` | Remetente da confirmacao. |
+| `NOTIFICACOES_CONSUMIDOR_ATIVO` | Ativa ou desativa somente o consumidor. |
+| `NOTIFICACOES_*` | Nomes externalizados da exchange, filas e routing keys. |
+| `BATCH_INPUT_DIR` | Diretorio temporario dos CSVs. |
 
 ### Variaveis recebidas pelas aplicacoes
 
@@ -134,6 +161,10 @@ Substitua as senhas ilustrativas. O `.env` real e ignorado pelo Git.
 | `JPA_DDL_AUTO` | `dev` e `prod` | Define a estrategia de schema quando o profile permite sobrescrita. A aplicacao principal fixa `create-drop` em `dev`. |
 | `JPA_SHOW_SQL` | `dev` e `prod` | Controla a exibicao das consultas SQL nos logs. |
 | `HIBERNATE_FORMAT_SQL` | `dev` e `prod` | Controla a formatacao do SQL exibido nos logs. |
+| `RABBITMQ_HOST`, `RABBITMQ_PORT`, `RABBITMQ_USERNAME`, `RABBITMQ_PASSWORD` | `dev` e `prod` | Conexao com o broker. Em containers, o host e `rabbitmq`. |
+| `MAIL_HOST`, `MAIL_PORT`, `MAIL_USERNAME`, `MAIL_PASSWORD`, `MAIL_FROM` | `dev` e `prod` | Configuracao SMTP; a senha deve ser uma senha de aplicativo. |
+| `NOTIFICACOES_CONSUMIDOR_ATIVO` | `dev` e `prod` | Permite interromper o consumidor sem parar API e produtor. |
+| `BATCH_INPUT_DIR` | `dev` e `prod` | Diretorio dos arquivos temporarios da importacao. |
 
 Uma aplicacao iniciada pelo Maven nao le `.env` automaticamente. Nesse caso, defina as variaveis de `dev` no terminal ou na configuracao da IDE. Em `prod`, o Compose entrega `DB_URL`, `DB_USERNAME`, `DB_PASSWORD` e `SERVER_PORT` separadamente para cada container, sem armazenar credenciais no Config Server.
 
@@ -146,7 +177,8 @@ sysHospitalar
 |-- src/                         # aplicacao principal
 |-- atendimentos-service/        # servico independente
 |-- config-server/               # configuracao centralizada
-|-- docs/etapas/                 # requisitos e guias academicos
+|-- docs/etapas/                 # requisitos, planejamentos e guias academicos
+|-- postman/                     # colecoes para demonstracao da API
 |-- compose.yml                  # orquestracao dev/prod
 |-- .env.example                 # contrato das variaveis locais
 `-- Dockerfile                   # imagem da aplicacao principal
@@ -158,16 +190,16 @@ sysHospitalar
 
 - Java 21;
 - Docker Desktop ou Docker Engine com Compose;
-- portas `5432`, `5433`, `8888`, `8080` e `8081` livres.
+- portas `5432`, `5433`, `5672`, `15672`, `8888`, `8080` e `8081` livres.
 
-### 1. Iniciar os bancos
+### 1. Iniciar bancos e RabbitMQ
 
 ```powershell
 docker compose --profile dev up -d
 docker compose --profile dev ps
 ```
 
-Somente `postgres-principal` e `postgres-atendimentos` devem iniciar.
+Devem iniciar `postgres-principal`, `postgres-atendimentos` e `rabbitmq`. O painel fica em `http://localhost:15672`.
 
 ### 2. Iniciar o Config Server
 
@@ -209,6 +241,12 @@ $env:ATENDIMENTOS_SERVICE_URL="http://localhost:8081"
 $env:SYSHOSPITALAR_DB_URL="jdbc:postgresql://localhost:5432/syshospitalar"
 $env:SYSHOSPITALAR_DB_USERNAME="syshospitalar"
 $env:SYSHOSPITALAR_DB_PASSWORD="a-mesma-senha-do-env"
+$env:RABBITMQ_HOST="localhost"
+$env:RABBITMQ_USERNAME="syshospitalar"
+$env:RABBITMQ_PASSWORD="a-mesma-senha-do-env"
+$env:MAIL_USERNAME="seu-email@gmail.com"
+$env:MAIL_PASSWORD="senha-de-aplicativo"
+$env:MAIL_FROM="seu-email@gmail.com"
 .\mvnw.cmd spring-boot:run
 ```
 
@@ -228,7 +266,7 @@ docker compose --profile prod up --build -d
 docker compose --profile prod ps
 ```
 
-Devem iniciar cinco componentes: dois bancos, Config Server, `atendimentos-service` e aplicacao principal. Dentro dos containers, as conexoes utilizam nomes como `config-server`, `atendimentos-service`, `postgres-principal` e `postgres-atendimentos`.
+Devem iniciar seis componentes: dois bancos, RabbitMQ, Config Server, `atendimentos-service` e aplicacao principal. Dentro dos containers, as conexoes utilizam nomes como `config-server`, `atendimentos-service`, `rabbitmq`, `postgres-principal` e `postgres-atendimentos`.
 
 Parar sem apagar os dados:
 
@@ -244,7 +282,7 @@ docker compose --profile prod down -v
 
 ## Testes
 
-Os testes das duas aplicacoes usam PostgreSQL 17 por Testcontainers. Quando Docker nao esta disponivel, eles sao marcados como ignorados; com Docker ativo, criam bancos temporarios, carregam os contextos e exercitam persistencia real.
+Os testes das duas aplicacoes usam PostgreSQL 17 por Testcontainers. A aplicacao principal tambem usa RabbitMQ real em testes para validar consumo, retentativas e DLQ; o Gmail e sempre simulado.
 
 ```powershell
 .\mvnw.cmd test
@@ -310,6 +348,76 @@ GET    /atendimentos/filtro/tipo?tipo=URGENCIA
 GET    /atendimentos/ordenados-por-data
 ```
 
+### Importacao de pacientes
+
+```text
+POST /batch/pacientes/importacoes
+GET  /batch/pacientes/importacoes/{executionId}
+```
+
+O `POST` recebe `multipart/form-data` no campo `arquivo`, devolve `202 Accepted` e um `Location` para consulta. O CSV UTF-8 pode ter ate 2 MB e exige o cabecalho:
+
+```csv
+nome,cpf,dataNascimento,sexo,telefone,email,ativo
+```
+
+Um exemplo pronto, com linhas validas, invalidas e duplicadas, esta em `src/main/resources/batch/pacientes-exemplo.csv`. Apenas uma importacao pode ficar ativa por vez.
+
+## Demonstracao da mensageria
+
+O fluxo implementado e:
+
+```text
+POST /atendimentos
+  -> atendimentos-service confirma a persistencia
+  -> produtor publica AtendimentoCriadoEvento
+  -> RabbitMQ
+  -> consumidor
+  -> Gmail SMTP
+```
+
+O evento transporta somente `eventoId`, `tipoEvento`, `atendimentoId`, `pacienteNome`, `pacienteEmail` e `dataHoraAtendimento`. A resposta HTTP continua sendo `201 Created` sem aguardar o envio do e-mail.
+
+Para observar o desacoplamento:
+
+1. Configure Gmail com uma senha de aplicativo e crie um atendimento; confirme a mensagem recebida.
+2. Reinicie apenas a aplicacao principal com `NOTIFICACOES_CONSUMIDOR_ATIVO=false`.
+3. Crie outro atendimento e abra `http://localhost:15672`.
+4. Verifique uma mensagem aguardando em `notificacao-email.atendimento-criado`.
+5. Reinicie a aplicacao com `NOTIFICACOES_CONSUMIDOR_ATIVO=true`.
+6. Confirme que a fila foi consumida e o e-mail foi enviado.
+7. Para demonstrar falha, use temporariamente uma configuracao SMTP invalida: ocorrem tres tentativas, com esperas de 2 e 4 segundos, e a mensagem termina em `notificacao-email.atendimento-criado.dlq`.
+
+Se o RabbitMQ falhar durante a publicacao, o atendimento ja persistido e o `201` sao preservados e a falha e registrada por IDs seguros. Como esta etapa nao usa transactional outbox, essa notificacao pode ser perdida. A entrega do RabbitMQ e pelo menos uma vez; portanto, em uma falha rara entre o SMTP e o reconhecimento da mensagem, um e-mail pode ser duplicado.
+
+## Demonstracao do Spring Batch
+
+Com a aplicacao principal ativa, envie o arquivo de exemplo:
+
+```powershell
+$resposta = Invoke-RestMethod -Method Post `
+  -Uri http://localhost:8080/batch/pacientes/importacoes `
+  -Form @{ arquivo = Get-Item .\src\main\resources\batch\pacientes-exemplo.csv }
+
+Invoke-RestMethod "http://localhost:8080/batch/pacientes/importacoes/$($resposta.executionId)"
+```
+
+O reader le o CSV, o processor normaliza nome, CPF, telefone, sexo e e-mail, valida data e campos e filtra duplicidades. O writer persiste pacientes validos no PostgreSQL principal em chunks de 10. Arquivos de Jobs concluidos sao excluidos; arquivos de Jobs que falham sao preservados para diagnostico.
+
+## REST, mensageria e Batch no SysHospitalar
+
+| Mecanismo | Uso concreto | Motivo |
+| --- | --- | --- |
+| REST | Cadastrar e consultar pacientes; solicitar a criacao do atendimento no `atendimentos-service`. | O cliente ou a aplicacao principal precisa de uma resposta imediata. |
+| Mensageria | Enviar a confirmacao de atendimento por e-mail. | O atendimento nao deve depender do tempo ou da disponibilidade do SMTP. |
+| Batch | Importar varios pacientes de um CSV. | O conjunto passa pelo mesmo fluxo estruturado de leitura, normalizacao, filtragem e escrita em chunks. |
+
+O envio de e-mail foi escolhido para a operacao assincrona porque e um efeito posterior: ele informa algo que ja foi persistido, mas nao determina o sucesso do atendimento. A importacao foi escolhida para Batch porque processa multiplos registros e precisa de contadores, estado da execucao e transacoes por bloco.
+
+## Postman
+
+A colecao `postman/SysHospitalar-Etapa4.postman_collection.json` contem os fluxos de pacientes, atendimento, inicio do Batch e consulta pelo `executionId`. No upload, selecione localmente o arquivo CSV antes de enviar.
+
 ## Exemplo de fluxo funcional
 
 O profile `dev` cria paciente e medico com identificador `1`. Com as duas aplicacoes em execucao, um atendimento pode ser criado pela aplicacao principal:
@@ -329,6 +437,8 @@ O profile `dev` cria paciente e medico com identificador `1`. Com as duas aplica
 Os DTOs de entrada utilizam Bean Validation. Entre as regras existentes estao CPF com 11 numeros, e-mail valido, idade minima de 18 anos para prestadores, data de nascimento nao futura e identificadores relacionados positivos.
 
 As excecoes sao tratadas centralmente. Os principais status sao `200`, `201`, `204`, `400`, `404`, `409` e `503`.
+
+CPF e e-mail de paciente sao unicos na API e no banco. O e-mail e normalizado para minusculas; conflitos de cadastro ou atualizacao retornam `409` sem identificar o outro paciente. Antes de aplicar as constraints em um banco persistente antigo, verifique manualmente CPFs repetidos e e-mails que diferem apenas por maiusculas/minusculas; a aplicacao nao corrige nem exclui registros automaticamente.
 
 ## Reflexao arquitetural da Etapa 3
 

@@ -1,0 +1,85 @@
+{
+  "info": {
+    "_postman_id": "f83931db-c8ef-4d1e-a341-syshospitalar-etapa4",
+    "name": "SysHospitalar - Etapa 4",
+    "description": "Demonstra mensageria de atendimento e importacao Batch. Antes do upload, selecione src/main/resources/batch/pacientes-exemplo.csv no campo arquivo.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:8080", "type": "string" },
+    { "key": "pacienteId", "value": "1", "type": "string" },
+    { "key": "medicoId", "value": "1", "type": "string" },
+    { "key": "executionId", "value": "", "type": "string" }
+  ],
+  "item": [
+    {
+      "name": "1. Criar paciente para notificacao",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"nome\": \"Paciente Etapa Quatro\",\n  \"cpf\": \"48392017654\",\n  \"dataNascimento\": \"1990-05-10\",\n  \"sexo\": \"F\",\n  \"telefone\": \"65999990000\",\n  \"email\": \"SEU-EMAIL-CONTROLADO@gmail.com\",\n  \"ativo\": true\n}"
+        },
+        "url": "{{baseUrl}}/pacientes",
+        "description": "Troque o e-mail por uma caixa controlada por voce. CPF e e-mail devem ser unicos."
+      },
+      "event": [{
+        "listen": "test",
+        "script": { "exec": [
+          "if (pm.response.code === 201) {",
+          "  pm.collectionVariables.set('pacienteId', pm.response.json().id);",
+          "}"
+        ] }
+      }]
+    },
+    {
+      "name": "2. Criar atendimento e publicar evento",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"dataHoraAtendimento\": \"2026-10-10T14:30:00\",\n  \"tipoAtendimento\": \"URGENCIA\",\n  \"statusAtendimento\": \"ANDAMENTO\",\n  \"pacienteId\": {{pacienteId}},\n  \"medicoId\": {{medicoId}}\n}"
+        },
+        "url": "{{baseUrl}}/atendimentos",
+        "description": "Apos o 201, a aplicacao publica AtendimentoCriadoEvento sem aguardar o Gmail."
+      }
+    },
+    {
+      "name": "3. Iniciar importacao de pacientes",
+      "request": {
+        "method": "POST",
+        "header": [],
+        "body": {
+          "mode": "formdata",
+          "formdata": [{
+            "key": "arquivo",
+            "type": "file",
+            "src": "",
+            "description": "Selecione src/main/resources/batch/pacientes-exemplo.csv"
+          }]
+        },
+        "url": "{{baseUrl}}/batch/pacientes/importacoes"
+      },
+      "event": [{
+        "listen": "test",
+        "script": { "exec": [
+          "pm.test('Importacao aceita', function () { pm.response.to.have.status(202); });",
+          "if (pm.response.code === 202) {",
+          "  pm.collectionVariables.set('executionId', pm.response.json().executionId);",
+          "}"
+        ] }
+      }]
+    },
+    {
+      "name": "4. Consultar importacao",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": "{{baseUrl}}/batch/pacientes/importacoes/{{executionId}}",
+        "description": "Repita ate o status ser COMPLETED ou FAILED."
+      }
+    }
+  ]
+}

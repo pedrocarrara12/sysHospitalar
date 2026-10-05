@@ -11,6 +11,8 @@ import br.com.pedrocarrarafigueiredo.pedro_carrara_syshospitalar.exception.Objet
 import br.com.pedrocarrarafigueiredo.pedro_carrara_syshospitalar.exception.ServicoIndisponivelException;
 import br.com.pedrocarrarafigueiredo.pedro_carrara_syshospitalar.medico.domain.Medico;
 import br.com.pedrocarrarafigueiredo.pedro_carrara_syshospitalar.medico.repository.MedicoRepository;
+import br.com.pedrocarrarafigueiredo.pedro_carrara_syshospitalar.notificacao.evento.AtendimentoCriadoEvento;
+import br.com.pedrocarrarafigueiredo.pedro_carrara_syshospitalar.notificacao.produtor.AtendimentoCriadoProducer;
 import br.com.pedrocarrarafigueiredo.pedro_carrara_syshospitalar.paciente.domain.Paciente;
 import br.com.pedrocarrarafigueiredo.pedro_carrara_syshospitalar.paciente.repository.PacienteRepository;
 import feign.FeignException;
@@ -18,6 +20,7 @@ import feign.RetryableException;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.UUID;
 import java.util.function.Supplier;
 
 @Service
@@ -26,12 +29,14 @@ public class AtendimentoService {
     private final AtendimentoClient atendimentoClient;
     private final PacienteRepository pacienteRepository;
     private final MedicoRepository medicoRepository;
+    private final AtendimentoCriadoProducer atendimentoCriadoProducer;
 
     public AtendimentoService(AtendimentoClient atendimentoClient, PacienteRepository pacienteRepository,
-        MedicoRepository medicoRepository) {
+        MedicoRepository medicoRepository, AtendimentoCriadoProducer atendimentoCriadoProducer) {
         this.atendimentoClient = atendimentoClient;
         this.pacienteRepository = pacienteRepository;
         this.medicoRepository = medicoRepository;
+        this.atendimentoCriadoProducer = atendimentoCriadoProducer;
     }
 
     public AtendimentoResponse cadastrar(AtendimentoRequest request) {
@@ -41,7 +46,18 @@ public class AtendimentoService {
         AtendimentoServiceResponse atendimentoServiceResponse = executarChamadaRemota(
                 () -> atendimentoClient.cadastrar(request)
         );
-        return converterParaResponse(atendimentoServiceResponse);
+        AtendimentoResponse response = converterParaResponse(atendimentoServiceResponse);
+        Paciente paciente = pacienteRepository.findById(atendimentoServiceResponse.pacienteId())
+                .orElseThrow(() -> new ObjetoNaoEncontradoException("Paciente nao encontrado"));
+        atendimentoCriadoProducer.publicar(new AtendimentoCriadoEvento(
+                UUID.randomUUID(),
+                AtendimentoCriadoEvento.TIPO,
+                atendimentoServiceResponse.id(),
+                paciente.getNome(),
+                paciente.getEmail(),
+                atendimentoServiceResponse.dataHoraAtendimento()
+        ));
+        return response;
     }
 
     public AtendimentoResponse atualizar(Long id, AtendimentoRequest request) {

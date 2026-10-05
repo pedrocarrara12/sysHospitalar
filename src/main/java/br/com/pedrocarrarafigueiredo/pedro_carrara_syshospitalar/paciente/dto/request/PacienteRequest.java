@@ -7,6 +7,7 @@ import jakarta.validation.constraints.PastOrPresent;
 import jakarta.validation.constraints.Pattern;
 
 import java.time.LocalDate;
+import java.util.Locale;
 
 public record PacienteRequest(
         @NotBlank(message = "Nome do paciente e obrigatorio.")
@@ -33,4 +34,7 @@ public record PacienteRequest(
 
         Boolean ativo
 ) {
+    public PacienteRequest {
+        email = email == null ? null : email.trim().toLowerCase(Locale.ROOT);
+    }
 }

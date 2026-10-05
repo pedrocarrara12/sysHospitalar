@@ -11,4 +11,12 @@ public interface PacienteRepository extends JpaRepository<Paciente, Long> {
     List<Paciente> findBySexo(char sexo);
 
     List<Paciente> findAllByOrderByNomeAsc();
+
+    boolean existsByCpf(String cpf);
+
+    boolean existsByEmailIgnoreCase(String email);
+
+    boolean existsByCpfAndIdNot(String cpf, Long id);
+
+    boolean existsByEmailIgnoreCaseAndIdNot(String email, Long id);
 }

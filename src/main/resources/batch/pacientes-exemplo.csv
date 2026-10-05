@@ -1,0 +1,6 @@
+nome,cpf,dataNascimento,sexo,telefone,email,ativo
+Ana Exemplo,123.456.789-01,1990-05-10,F,(65) 99999-0001,ANA.EXEMPLO@EMAIL.COM,true
+Bruno Exemplo,98765432100,1988-11-22,M,65999990002,bruno.exemplo@email.com,
+Data Futura,11122233344,2999-01-01,F,65999990003,futura@email.com,true
+CPF Invalido,1234,1985-03-20,M,65999990004,cpf.invalido@email.com,true
+Email Duplicado,22233344455,1992-07-15,F,65999990005,ana.exemplo@email.com,false

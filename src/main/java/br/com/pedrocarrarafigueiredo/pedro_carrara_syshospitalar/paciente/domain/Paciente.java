@@ -5,12 +5,17 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
+import jakarta.persistence.UniqueConstraint;
 
 import java.time.LocalDate;
 import java.time.Period;
+import java.util.Locale;
 
 @Entity
-@Table(name = "paciente")
+@Table(name = "paciente", uniqueConstraints = {
+        @UniqueConstraint(name = "uk_paciente_cpf", columnNames = "cpf"),
+        @UniqueConstraint(name = "uk_paciente_email", columnNames = "email")
+})
 public class Paciente implements Comparable<Paciente> {
 
     @Id
@@ -123,6 +128,7 @@ public class Paciente implements Comparable<Paciente> {
     }
 
     public void setEmail(String email) {
+        email = email == null ? null : email.trim().toLowerCase(Locale.ROOT);
         if (email == null || !email.matches("^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+$")) {
             throw new IllegalArgumentException("E-mail invalido.");
         }

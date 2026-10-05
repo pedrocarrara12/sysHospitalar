@@ -4,9 +4,11 @@ import br.com.pedrocarrarafigueiredo.pedro_carrara_syshospitalar.dto.ErrorRespon
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.multipart.MaxUploadSizeExceededException;
 
 import java.time.LocalDateTime;
 import java.util.stream.Collectors;
@@ -56,6 +58,30 @@ public class GlobalExceptionHandler {
 
     }
 
+    @ExceptionHandler(DataIntegrityViolationException.class)
+    public ResponseEntity<ErrorResponse> handleDataIntegrityViolationException(
+            DataIntegrityViolationException ex,
+            HttpServletRequest request) {
+        String detalhes = ex.getMostSpecificCause().getMessage();
+        String mensagem;
+        if (detalhes != null && detalhes.contains("uk_paciente_cpf")) {
+            mensagem = "CPF ja cadastrado para outro paciente";
+        } else if (detalhes != null && detalhes.contains("uk_paciente_email")) {
+            mensagem = "E-mail ja cadastrado para outro paciente";
+        } else {
+            mensagem = "CPF ou e-mail ja cadastrado para outro paciente";
+        }
+
+        ErrorResponse errorResponse = new ErrorResponse(
+                LocalDateTime.now(),
+                HttpStatus.CONFLICT.value(),
+                HttpStatus.CONFLICT.getReasonPhrase(),
+                mensagem,
+                request.getRequestURI()
+        );
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(errorResponse);
+    }
+
     @ExceptionHandler(ServicoIndisponivelException.class)
     public ResponseEntity<ErrorResponse> handleServicoIndisponivelException(
             ServicoIndisponivelException ex,
@@ -86,5 +112,19 @@ public class GlobalExceptionHandler {
             );
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponse);
 
+    }
+
+    @ExceptionHandler(MaxUploadSizeExceededException.class)
+    public ResponseEntity<ErrorResponse> handleMaxUploadSizeExceededException(
+            MaxUploadSizeExceededException ex,
+            HttpServletRequest request) {
+        ErrorResponse errorResponse = new ErrorResponse(
+                LocalDateTime.now(),
+                HttpStatus.BAD_REQUEST.value(),
+                HttpStatus.BAD_REQUEST.getReasonPhrase(),
+                "O arquivo excede o limite de 2 MB",
+                request.getRequestURI()
+        );
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponse);
     }
 }
